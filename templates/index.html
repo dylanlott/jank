@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>{{.Title}}</title>
+</head>
+<body>
+    <h1>{{.Title}}</h1>
+    <p>{{.Description}}</p>
+
+    <h2>Boards</h2>
+    {{if .Boards}}
+        <ul>
+        {{range .Boards}}
+            <li>
+                <a href="/view/board/{{.ID}}">{{.Name}}</a> - {{.Description}}
+            </li>
+        {{end}}
+        </ul>
+    {{else}}
+        <p>No boards available</p>
+    {{end}}
+
+    <hr>
+    <p>You can also fetch boards via REST:</p>
+    <button onclick="loadBoards()">Load Boards (REST)</button>
+    <pre id="result"></pre>
+
+    <script>
+    async function loadBoards() {
+        try {
+            const res = await fetch('/boards');
+            if (!res.ok) {
+                throw new Error('Failed to fetch boards.');
+            }
+            const boards = await res.json();
+            document.getElementById('result').textContent = JSON.stringify(boards, null, 2);
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>{{.Board.Name}} - 4chan Clone</title>
+</head>
+<body>
+    <h1>{{.Board.Name}} (Board #{{.Board.ID}})</h1>
+    <p>{{.Board.Description}}</p>
+
+    <h2>Threads</h2>
+    {{if .Board.Threads}}
+        <ul>
+        {{range .Board.Threads}}
+            <li>
+                <strong>Thread #{{.ID}}:</strong> {{.Title}}<br>
+                <small>Created: {{.Created}}</small>
+                <!-- You might link to /view/thread/{{.ID}} if you implement a thread view. -->
+            </li>
+        {{end}}
+        </ul>
+    {{else}}
+        <p>No threads yet. Be the first to create one!</p>
+    {{end}}
+
+    <hr>
+    <p><a href="/">Back to Home</a></p>
+</body>
+</html>
+
