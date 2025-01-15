@@ -50,3 +50,14 @@ curl -X POST -H "Content-Type: application/json" -d '{"title":"Dimir control is 
 ```sh
 curl -X POST -H "Content-Type: application/json" -d '{"author":"anonymous", "content":"bofades nutz"}' http://localhost:8080/posts/1/1
 ```
+
+## Ideas
+
+- Ability to represent annotated tress of cards
+- Decklist handling
+- Player profile integration with vedh.xyz
+- Replay and game linking support for vedh games
+
+## License
+
+This project is licensed under the MIT License. See the [MIT LICENSE](./LICENSE) file for details.
