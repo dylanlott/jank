@@ -1,10 +1,15 @@
 # jank
 
-> a messaging board with MTG card recognition for vedh.xyz
+```txt
+       _             __  
+      (_)___ _____  / /__
+     / / __ `/ __ \/ //_/
+    / / /_/ / / / / ,<   
+ __/ /\__,_/_/ /_/_/|_|  
+/___/                    
+```
 
-## Stack
-
-This app uses Go with SQLite to store data. It is intentionally thin with all front-end assets statically embedded in the Go binary at build time.
+`jank` uses Go with SQLite to store data. It is intentionally simple with all front-end assets statically embedded in the Go binary at build time.
 
 ## Development
 
