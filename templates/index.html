@@ -2,44 +2,81 @@
 <html>
 <head>
     <meta charset="UTF-8" />
-    <title>{{.Title}}</title>
+    <title>4chan Clone - Home</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter&display=swap" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #343a40;
+            color: #fff;
+            padding: 15px 20px;
+            text-align: center;
+        }
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .board-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .board-item {
+            border-bottom: 1px solid #ddd;
+            padding: 15px 0;
+        }
+        .board-item:last-child {
+            border-bottom: none;
+        }
+        .board-title {
+            font-weight: bold;
+            color: #343a40;
+        }
+        .board-description {
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #6c757d;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-    <h1>{{.Title}}</h1>
-    <p>{{.Description}}</p>
+    <header>
+        <h1>/jank - an MTG message board</h1>
+    </header>
 
-    <h2>Boards</h2>
-    {{if .Boards}}
-        <ul>
-        {{range .Boards}}
-            <li>
-                <a href="/view/board/{{.ID}}">{{.Name}}</a> - {{.Description}}
-            </li>
-        {{end}}
+    <div class="container">
+        <h2>Boards</h2>
+        <ul class="board-list">
+            {{range .Boards}}
+                <li class="board-item">
+                    <div class="board-title"><a href="/view/board/{{.ID}}">{{.Name}}</a></div>
+                    <div class="board-description">{{.Description}}</div>
+                </li>
+            {{end}}
         </ul>
-    {{else}}
-        <p>No boards available</p>
-    {{end}}
 
-    <hr>
-    <p>You can also fetch boards via REST:</p>
-    <button onclick="loadBoards()">Load Boards (REST)</button>
-    <pre id="result"></pre>
-
-    <script>
-    async function loadBoards() {
-        try {
-            const res = await fetch('/boards');
-            if (!res.ok) {
-                throw new Error('Failed to fetch boards.');
-            }
-            const boards = await res.json();
-            document.getElementById('result').textContent = JSON.stringify(boards, null, 2);
-        } catch (err) {
-            alert(err.message);
-        }
-    }
-    </script>
+        <footer>
+            <p><a href="/">Back to Home</a></p>
+        </footer>
+    </div>
 </body>
 </html>
-
