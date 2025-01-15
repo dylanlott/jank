@@ -2,29 +2,116 @@
 <html>
 <head>
     <meta charset="UTF-8" />
-    <title>{{.Board.Name}} - 4chan Clone</title>
+    <title>/jank/{{.Board.Name}}/</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter&display=swap" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #343a40;
+            color: #fff;
+            padding: 15px 20px;
+            text-align: center;
+        }
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .board-title {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+            color: #343a40;
+        }
+        .board-meta {
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+        .threads {
+            list-style-type: none;
+            padding: 0;
+        }
+        .thread {
+            border-bottom: 1px solid #ddd;
+            padding: 15px 0;
+        }
+        .thread:last-child {
+            border-bottom: none;
+        }
+        .thread-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .thread-title {
+            font-weight: bold;
+            color: #343a40;
+        }
+        .thread-date {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #6c757d;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 600px) {
+            .thread-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .thread-date {
+                margin-top: 5px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h1>{{.Board.Name}} (Board #{{.Board.ID}})</h1>
-    <p>{{.Board.Description}}</p>
+    <header>
+        <h1>/jank{{.Board.Name}}</h1>
+    </header>
 
-    <h2>Threads</h2>
-    {{if .Board.Threads}}
-        <ul>
-        {{range .Board.Threads}}
-            <li>
-                <strong>Thread #{{.ID}}:</strong> {{.Title}}<br>
-                <small>Created: {{.Created}}</small>
-                <!-- You might link to /view/thread/{{.ID}} if you implement a thread view. -->
-            </li>
+    <div class="container">
+        <div class="board-title">{{.Board.Name}} (Board #{{.Board.ID}})</div>
+        <div class="board-meta">{{.Board.Description}}</div>
+
+        <a href="/view/board/newthread/{{.Board.ID}}">Create a new thread</a>
+
+        <h2>Threads</h2>
+        {{if .Board.Threads}}
+            <ul class="threads">
+            {{range .Board.Threads}}
+                <li class="thread">
+                    <div class="thread-header">
+                        <div class="thread-title"><a href="/view/thread/{{.ID}}">Thread #{{.ID}}: {{.Title}}</a></div>
+                        <div class="thread-date">Created: {{.Created}}</div>
+                    </div>
+                </li>
+            {{end}}
+            </ul>
+        {{else}}
+            <p>No threads yet. Be the first to create one!</p>
         {{end}}
-        </ul>
-    {{else}}
-        <p>No threads yet. Be the first to create one!</p>
-    {{end}}
 
-    <hr>
-    <p><a href="/">Back to Home</a></p>
+        <footer>
+            <p><a href="/">Back to Home</a></p>
+        </footer>
+    </div>
 </body>
 </html>
 
