@@ -1,16 +1,19 @@
 package main
 
 import (
+	"crypto/rand"
 	"database/sql"
 	"embed"
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/sirupsen/logrus"
 )
@@ -55,6 +58,8 @@ type Post struct {
 	Author  string    `json:"author"`
 	Content string    `json:"content"`
 	Created time.Time `json:"created"`
+	Number  *big.Int  `json:"number"`
+	Flair   string    `json:"flair"`
 }
 
 // ------------------- Template Data -------------------
@@ -110,22 +115,26 @@ func main() {
 		log.Fatalf("Failed to parse templates: %v", err)
 	}
 
-	// 5. Set up HTTP routes
+	// 5. Set up HTTP routes using gorilla/mux
+	r := mux.NewRouter()
+
 	// -- HTML pages --
-	http.HandleFunc("/", serveIndex)                          // Homepage
-	http.HandleFunc("/view/board/", serveBoardView)           // Board detail page
-	http.HandleFunc("/view/board/newthread/", serveNewThread) // New thread creation (GET/POST)
-	http.HandleFunc("/view/thread/", serveThreadView)         // Individual thread view and post handling
+	r.HandleFunc("/", serveIndex).Methods("GET")
+	r.HandleFunc("/view/board/{boardID:[0-9]+}", serveBoardView).Methods("GET")
+	r.HandleFunc("/view/board/newthread/{boardID:[0-9]+}", serveNewThread).Methods("GET", "POST")
+	r.HandleFunc("/view/thread/{threadID:[0-9]+}", serveThreadView).Methods("GET")
+	r.HandleFunc("/view/thread/{threadID:[0-9]+}/post", serveThreadView).Methods("POST")
 
 	// -- REST API endpoints --
-	http.HandleFunc("/boards", boardsHandler)
-	http.HandleFunc("/boards/", boardHandler)
-	http.HandleFunc("/threads/", threadsHandler)
-	http.HandleFunc("/posts/", postsHandler)
+	r.HandleFunc("/boards", boardsHandler).Methods("GET", "POST")
+	r.HandleFunc("/boards/{boardID:[0-9]+}", boardHandler).Methods("GET")
+	r.HandleFunc("/threads/{boardID:[0-9]+}", threadsHandler).Methods("GET", "POST")
+	r.HandleFunc("/posts/{boardID:[0-9]+}/{threadID:[0-9]+}", postsHandler).Methods("POST")
+	r.HandleFunc("/delete/board/{boardID:[0-9]+}", deleteBoardHandler).Methods("DELETE")
 
 	// 6. Start the server
 	log.Info("Server listening on http://localhost:8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(":8080", r); err != nil {
 		log.Fatalf("Server error: %v", err)
 	}
 }
@@ -149,7 +158,7 @@ func serveIndex(w http.ResponseWriter, r *http.Request) {
 
 	// Prepare the template data
 	data := IndexViewData{
-		Title:       "Welcome to 4chan Clone",
+		Title:       "Welcome to /jank/",
 		Description: "Select a board below to view its threads.",
 		Boards:      boards,
 	}
@@ -162,15 +171,8 @@ func serveIndex(w http.ResponseWriter, r *http.Request) {
 
 // serveBoardView executes board.html for a specific board (by ID).
 func serveBoardView(w http.ResponseWriter, r *http.Request) {
-	// Example path: /view/board/1
-	// We'll parse the board ID from the path.
-	parts := strings.Split(r.URL.Path, "/")
-	// parts = ["", "view", "board", "{boardID}"]
-	if len(parts) < 4 {
-		http.NotFound(w, r)
-		return
-	}
-	boardIDStr := parts[len(parts)-1]
+	vars := mux.Vars(r)
+	boardIDStr := vars["boardID"]
 	boardID, err := strconv.Atoi(boardIDStr)
 	if err != nil {
 		http.Error(w, "Invalid board ID", http.StatusBadRequest)
@@ -198,15 +200,8 @@ func serveBoardView(w http.ResponseWriter, r *http.Request) {
 // GET => Show the form (new_thread.html)
 // POST => Process form data & create the thread, then redirect to the board view
 func serveNewThread(w http.ResponseWriter, r *http.Request) {
-	// Example path: /view/board/newthread/1
-	// We'll parse the board ID from the path.
-	parts := strings.Split(r.URL.Path, "/")
-	// parts = ["", "view", "board", "newthread", "{boardID}"]
-	if len(parts) < 5 {
-		http.NotFound(w, r)
-		return
-	}
-	boardIDStr := parts[len(parts)-1]
+	vars := mux.Vars(r)
+	boardIDStr := vars["boardID"]
 	boardID, err := strconv.Atoi(boardIDStr)
 	if err != nil {
 		http.Error(w, "Invalid board ID", http.StatusBadRequest)
@@ -258,20 +253,16 @@ func serveNewThread(w http.ResponseWriter, r *http.Request) {
 // GET => Display thread.html with thread and posts
 // POST => Add a new post to the thread and redirect back to thread view
 func serveThreadView(w http.ResponseWriter, r *http.Request) {
-	// Example paths:
-	// GET: /view/thread/1
-	// POST: /view/thread/1/post
-	path := strings.TrimPrefix(r.URL.Path, "/view/thread/")
-	parts := strings.Split(path, "/")
+	vars := mux.Vars(r)
+	threadIDStr := vars["threadID"]
+	threadID, err := strconv.Atoi(threadIDStr)
+	if err != nil {
+		http.Error(w, "Invalid thread ID", http.StatusBadRequest)
+		return
+	}
 
-	if len(parts) == 1 && r.Method == http.MethodGet {
+	if r.Method == http.MethodGet {
 		// Handle GET request to view the thread
-		threadIDStr := parts[0]
-		threadID, err := strconv.Atoi(threadIDStr)
-		if err != nil {
-			http.Error(w, "Invalid thread ID", http.StatusBadRequest)
-			return
-		}
 
 		// Fetch thread with posts
 		thread, boardID, err := getThreadByID(db, threadID)
@@ -291,14 +282,8 @@ func serveThreadView(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 
-	} else if len(parts) == 2 && parts[1] == "post" && r.Method == http.MethodPost {
+	} else if r.Method == http.MethodPost {
 		// Handle POST request to add a new post to the thread
-		threadIDStr := parts[0]
-		threadID, err := strconv.Atoi(threadIDStr)
-		if err != nil {
-			http.Error(w, "Invalid thread ID", http.StatusBadRequest)
-			return
-		}
 
 		// Parse form data
 		if err := r.ParseForm(); err != nil {
@@ -372,12 +357,9 @@ func boardsHandler(w http.ResponseWriter, r *http.Request) {
 
 // boardHandler fetches a specific board (with threads + posts) in JSON form.
 func boardHandler(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/boards/"), "/")
-	if len(parts) < 1 {
-		http.Error(w, "Invalid URL", http.StatusBadRequest)
-		return
-	}
-	boardID, err := strconv.Atoi(parts[0])
+	vars := mux.Vars(r)
+	boardIDStr := vars["boardID"]
+	boardID, err := strconv.Atoi(boardIDStr)
 	if err != nil {
 		http.Error(w, "Invalid Board ID", http.StatusBadRequest)
 		return
@@ -399,12 +381,9 @@ func boardHandler(w http.ResponseWriter, r *http.Request) {
 
 // threadsHandler lists or creates threads under a board (REST API).
 func threadsHandler(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/threads/"), "/")
-	if len(parts) < 1 {
-		http.Error(w, "Invalid URL", http.StatusBadRequest)
-		return
-	}
-	boardID, err := strconv.Atoi(parts[0])
+	vars := mux.Vars(r)
+	boardIDStr := vars["boardID"]
+	boardID, err := strconv.Atoi(boardIDStr)
 	if err != nil {
 		http.Error(w, "Invalid Board ID", http.StatusBadRequest)
 		return
@@ -444,18 +423,15 @@ func threadsHandler(w http.ResponseWriter, r *http.Request) {
 
 // postsHandler creates new posts in a given thread (REST API).
 func postsHandler(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/posts/"), "/")
-	if len(parts) < 2 {
-		http.Error(w, "Invalid URL format. Must be /posts/{boardID}/{threadID}", http.StatusBadRequest)
-		return
-	}
-	// boardID is parsed but not used; use '_' to ignore
-	_, err := strconv.Atoi(parts[0])
+	vars := mux.Vars(r)
+	boardIDStr := vars["boardID"]
+	threadIDStr := vars["threadID"]
+	_, err := strconv.Atoi(boardIDStr)
 	if err != nil {
 		http.Error(w, "Invalid Board ID", http.StatusBadRequest)
 		return
 	}
-	threadID, err := strconv.Atoi(parts[1])
+	threadID, err := strconv.Atoi(threadIDStr)
 	if err != nil {
 		http.Error(w, "Invalid Thread ID", http.StatusBadRequest)
 		return
@@ -480,6 +456,31 @@ func postsHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+// deleteBoardHandler deletes a specific board by ID (REST API).
+func deleteBoardHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	vars := mux.Vars(r)
+	boardIDStr := vars["boardID"]
+	boardID, err := strconv.Atoi(boardIDStr)
+	if err != nil {
+		http.Error(w, "Invalid Board ID", http.StatusBadRequest)
+		return
+	}
+
+	err = deleteBoardByID(db, boardID)
+	if err != nil {
+		log.Errorf("Failed to delete board: %v", err)
+		http.Error(w, "Failed to delete board", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // ------------------- Database & Utility -------------------
@@ -507,6 +508,8 @@ func migrate(db *sql.DB) error {
 		author TEXT,
 		content TEXT NOT NULL,
 		created DATETIME NOT NULL,
+		number TEXT,
+		flair TEXT,
 		FOREIGN KEY (thread_id) REFERENCES threads(id)
 	);`
 
@@ -675,10 +678,11 @@ func getThreadByID(db *sql.DB, threadID int) (*Thread, int, error) {
 // createPost inserts a new post into the database.
 func createPost(db *sql.DB, threadID int, author, content string) (*Post, error) {
 	now := time.Now()
+	number, flair := generateUniqueNumberAndFlair()
 	result, err := db.Exec(`
-		INSERT INTO posts (thread_id, author, content, created) 
-		VALUES (?, ?, ?, ?)`,
-		threadID, author, content, now)
+		INSERT INTO posts (thread_id, author, content, created, number, flair) 
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		threadID, author, content, now, number.String(), flair)
 	if err != nil {
 		return nil, err
 	}
@@ -691,13 +695,49 @@ func createPost(db *sql.DB, threadID int, author, content string) (*Post, error)
 		Author:  author,
 		Content: content,
 		Created: now,
+		Number:  number,
+		Flair:   flair,
 	}, nil
+}
+
+// generateUniqueNumberAndFlair generates a unique random large number and assigns a flair based on the number of preceding zeroes.
+func generateUniqueNumberAndFlair() (*big.Int, string) {
+	number, _ := rand.Int(rand.Reader, big.NewInt(1e18)) // Generate a random number up to 1e18
+	numberStr := fmt.Sprintf("%018d", number)            // Format the number with leading zeroes
+
+	// Count the number of preceding zeroes
+	zeroCount := 0
+	for _, char := range numberStr {
+		if char == '0' {
+			zeroCount++
+		} else {
+			break
+		}
+	}
+
+	var flair string
+	switch zeroCount {
+	case 1:
+		flair = "uno"
+	case 2:
+		flair = "dubs"
+	case 3:
+		flair = "trips"
+	case 4:
+		flair = "quads"
+	case 5:
+		flair = "pents"
+	default:
+		flair = "default"
+	}
+
+	return number, flair
 }
 
 // getPostsByThreadID retrieves all posts for a specific thread.
 func getPostsByThreadID(db *sql.DB, threadID int) ([]*Post, error) {
 	rows, err := db.Query(`
-		SELECT id, author, content, created
+		SELECT id, author, content, created, number, flair
 		FROM posts
 		WHERE thread_id = ?
 		ORDER BY created ASC`, threadID)
@@ -709,12 +749,29 @@ func getPostsByThreadID(db *sql.DB, threadID int) ([]*Post, error) {
 	var posts []*Post
 	for rows.Next() {
 		var p Post
-		if err := rows.Scan(&p.ID, &p.Author, &p.Content, &p.Created); err != nil {
+		var numberStr string
+		if err := rows.Scan(&p.ID, &p.Author, &p.Content, &p.Created, &numberStr, &p.Flair); err != nil {
 			return nil, err
 		}
+		p.Number = new(big.Int)
+		p.Number.SetString(numberStr, 10)
 		posts = append(posts, &p)
 	}
 	return posts, nil
+}
+
+// deleteBoardByID deletes a board and its associated threads and posts from the database.
+func deleteBoardByID(db *sql.DB, boardID int) error {
+	_, err := db.Exec(`DELETE FROM boards WHERE id = ?`, boardID)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`DELETE FROM threads WHERE board_id = ?`, boardID)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`DELETE FROM posts WHERE thread_id IN (SELECT id FROM threads WHERE board_id = ?)`, boardID)
+	return err
 }
 
 // respondJSON sends JSON responses (for our REST endpoints).

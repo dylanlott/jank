@@ -64,6 +64,14 @@
             white-space: pre-wrap;
             line-height: 1.5;
         }
+        .post-number {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        .post-flair {
+            font-size: 0.9em;
+            color: #ff6347;
+        }
         .new-post-form {
             margin-top: 30px;
         }
@@ -140,6 +148,8 @@
                             <div class="post-date">{{.Created.Format "Jan 2, 2006 at 3:04pm"}}</div>
                         </div>
                         <div class="post-content">{{.Content}}</div>
+                        <div class="post-number">Post ID: {{.Number}}</div>
+                        <div class="post-flair">{{.Flair}}</div>
                     </li>
                 {{end}}
             {{else}}

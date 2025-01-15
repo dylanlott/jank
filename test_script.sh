@@ -42,3 +42,24 @@ echo -e "\n"
 echo "Fetching thread 1..."
 curl $BASE_URL/threads/1
 echo -e "\n"
+
+# Test delete board route
+echo "Testing DELETE /delete/board/{boardID} route..."
+
+# Create a new board to delete
+curl -X POST -H "Content-Type: application/json" -d '{"name": "Test Board", "description": "This board will be deleted."}' $BASE_URL/boards
+
+# Get the ID of the newly created board
+BOARD_ID=$(curl -s $BASE_URL/boards | jq '.[-1].id')
+
+# Delete the board
+# TODO Make this test pass, it currently does not delete anything
+curl -X DELETE $BASE_URL/delete/board/$BOARD_ID
+
+# Verify the board was deleted
+RESPONSE=$(curl -s $BASE_URL/boards/$BOARD_ID)
+if [[ $RESPONSE == *"Board not found"* ]]; then
+  echo "Board successfully deleted."
+else
+  echo "Failed to delete board."
+fi
