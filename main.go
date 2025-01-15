@@ -702,8 +702,8 @@ func createPost(db *sql.DB, threadID int, author, content string) (*Post, error)
 
 // generateUniqueNumberAndFlair generates a unique random large number and assigns a flair based on the number of preceding zeroes.
 func generateUniqueNumberAndFlair() (*big.Int, string) {
-	number, _ := rand.Int(rand.Reader, big.NewInt(1e18)) // Generate a random number up to 1e18
-	numberStr := fmt.Sprintf("%018d", number)            // Format the number with leading zeroes
+	number, _ := rand.Int(rand.Reader, big.NewInt(1e10))
+	numberStr := fmt.Sprintf("%d", number)
 
 	// Count the number of preceding zeroes
 	zeroCount := 0
