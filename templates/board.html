@@ -79,6 +79,11 @@
                 margin-top: 5px;
             }
         }
+        .mtg-card {
+            font-weight: bold;
+            font-weight: 600;
+            color: #d9534f; /* Example color for card names */
+        }
     </style>
 </head>
 <body>
@@ -112,6 +117,26 @@
             <p><a href="/">Back to Home</a></p>
         </footer>
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const threadTitles = document.querySelectorAll('.thread-title a');
+            const boardTitle = document.querySelector('.board-title');
+            const boardMeta = document.querySelector('.board-meta');
+            const cardNamePattern = /\[\[([^\]]+)\]\]/g;
+
+            threadTitles.forEach(title => {
+                title.innerHTML = title.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
+            });
+
+            if (boardTitle) {
+                boardTitle.innerHTML = boardTitle.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
+            }
+
+            if (boardMeta) {
+                boardMeta.innerHTML = boardMeta.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
+            }
+        });
+    </script>
 </body>
 </html>
 

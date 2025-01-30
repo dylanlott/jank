@@ -128,6 +128,10 @@
                 margin-top: 5px;
             }
         }
+        .mtg-card {
+            font-weight: bold;
+            color: #d9534f; /* Example color for card names */
+        }
     </style>
 </head>
 <body>
@@ -176,5 +180,25 @@
             <p><a href="/view/board/{{.BoardID}}">← Back to Board</a></p>
         </footer>
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const postContents = document.querySelectorAll('.post-content');
+            const threadTitle = document.querySelector('.thread-title');
+            const threadMeta = document.querySelector('.thread-meta');
+            const cardNamePattern = /\[\[([^\]]+)\]\]/g;
+
+            postContents.forEach(content => {
+                content.innerHTML = content.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
+            });
+
+            if (threadTitle) {
+                threadTitle.innerHTML = threadTitle.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
+            }
+
+            if (threadMeta) {
+                threadMeta.innerHTML = threadMeta.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
+            }
+        });
+    </script>
 </body>
 </html>
