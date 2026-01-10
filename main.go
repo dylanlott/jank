@@ -142,6 +142,14 @@ type SignupViewData struct {
 	Error string
 }
 
+// ErrorViewData holds data for the error.html template.
+type ErrorViewData struct {
+	AuthViewData
+	Title   string
+	Message string
+	BackURL string
+}
+
 // ProfileThread is a lightweight thread view for profiles.
 type ProfileThread struct {
 	ID      int
@@ -249,7 +257,7 @@ func main() {
 // serveIndex executes index.html, showing a list of boards with links.
 func serveIndex(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
-		http.NotFound(w, r)
+		renderErrorPage(w, r, http.StatusNotFound, "Not Found", "That page does not exist.", "/")
 		return
 	}
 
@@ -257,7 +265,7 @@ func serveIndex(w http.ResponseWriter, r *http.Request) {
 	boards, err := getAllBoards(db)
 	if err != nil {
 		log.Errorf("Failed to retrieve boards: %v", err)
-		http.Error(w, "Failed to retrieve boards", http.StatusInternalServerError)
+		renderErrorPage(w, r, http.StatusInternalServerError, "Boards Unavailable", "Failed to load boards. Please try again.", "/")
 		return
 	}
 
@@ -282,7 +290,7 @@ func serveBoardView(w http.ResponseWriter, r *http.Request) {
 	boardIDStr := vars["boardID"]
 	boardID, err := strconv.Atoi(boardIDStr)
 	if err != nil {
-		http.Error(w, "Invalid board ID", http.StatusBadRequest)
+		renderErrorPage(w, r, http.StatusBadRequest, "Invalid Board", "That board ID is not valid.", "/")
 		return
 	}
 
@@ -290,7 +298,7 @@ func serveBoardView(w http.ResponseWriter, r *http.Request) {
 	board, err := getBoardByID(db, boardID, true)
 	if err != nil {
 		log.Errorf("Board not found: %v", err)
-		http.Error(w, "Board not found", http.StatusNotFound)
+		renderErrorPage(w, r, http.StatusNotFound, "Board Not Found", "We couldn't find that board.", "/")
 		return
 	}
 
@@ -315,7 +323,7 @@ func serveNewThread(w http.ResponseWriter, r *http.Request) {
 	boardIDStr := vars["boardID"]
 	boardID, err := strconv.Atoi(boardIDStr)
 	if err != nil {
-		http.Error(w, "Invalid board ID", http.StatusBadRequest)
+		renderErrorPage(w, r, http.StatusBadRequest, "Invalid Board", "That board ID is not valid.", "/")
 		return
 	}
 
@@ -339,12 +347,17 @@ func serveNewThread(w http.ResponseWriter, r *http.Request) {
 		username, _ := getAuthenticatedUsername(r)
 		// Parse form data
 		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+			renderErrorPage(w, r, http.StatusBadRequest, "Invalid Form", "We couldn't read that form submission.", fmt.Sprintf("/view/board/%d", boardID))
 			return
 		}
 		title := strings.TrimSpace(r.FormValue("title"))
 		if title == "" {
-			http.Error(w, "Thread title cannot be empty", http.StatusBadRequest)
+			renderErrorPage(w, r, http.StatusBadRequest, "Missing Title", "Thread title cannot be empty.", fmt.Sprintf("/view/board/newthread/%d", boardID))
+			return
+		}
+		content := strings.TrimSpace(r.FormValue("content"))
+		if content == "" {
+			renderErrorPage(w, r, http.StatusBadRequest, "Missing Post", "Thread content cannot be empty.", fmt.Sprintf("/view/board/newthread/%d", boardID))
 			return
 		}
 
@@ -352,7 +365,12 @@ func serveNewThread(w http.ResponseWriter, r *http.Request) {
 		thread, err := createThread(db, boardID, title, username)
 		if err != nil {
 			log.Errorf("Failed to create thread: %v", err)
-			http.Error(w, "Failed to create thread", http.StatusInternalServerError)
+			renderErrorPage(w, r, http.StatusInternalServerError, "Create Thread Failed", "We couldn't create that thread. Please try again.", fmt.Sprintf("/view/board/%d", boardID))
+			return
+		}
+		if _, err := createPost(db, thread.ID, username, content); err != nil {
+			log.Errorf("Failed to create starter post: %v", err)
+			renderErrorPage(w, r, http.StatusInternalServerError, "Post Failed", "We couldn't save your post. Please try again.", fmt.Sprintf("/view/board/%d", boardID))
 			return
 		}
 
@@ -363,7 +381,7 @@ func serveNewThread(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, fmt.Sprintf("/view/board/%d", boardID), http.StatusSeeOther)
 
 	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", fmt.Sprintf("/view/board/%d", boardID))
 	}
 }
 
@@ -376,7 +394,7 @@ func serveThreadView(w http.ResponseWriter, r *http.Request) {
 	threadIDStr := vars["threadID"]
 	threadID, err := strconv.Atoi(threadIDStr)
 	if err != nil {
-		http.Error(w, "Invalid thread ID", http.StatusBadRequest)
+		renderErrorPage(w, r, http.StatusBadRequest, "Invalid Thread", "That thread ID is not valid.", "/")
 		return
 	}
 
@@ -387,7 +405,7 @@ func serveThreadView(w http.ResponseWriter, r *http.Request) {
 		thread, boardID, err := getThreadByID(db, threadID)
 		if err != nil {
 			log.Errorf("Thread not found: %v", err)
-			http.Error(w, "Thread not found", http.StatusNotFound)
+			renderErrorPage(w, r, http.StatusNotFound, "Thread Not Found", "We couldn't find that thread.", "/")
 			return
 		}
 
@@ -412,12 +430,12 @@ func serveThreadView(w http.ResponseWriter, r *http.Request) {
 
 		// Parse form data
 		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+			renderErrorPage(w, r, http.StatusBadRequest, "Invalid Form", "We couldn't read that form submission.", fmt.Sprintf("/view/thread/%d", threadID))
 			return
 		}
 		content := strings.TrimSpace(r.FormValue("content"))
 		if content == "" {
-			http.Error(w, "Post content cannot be empty", http.StatusBadRequest)
+			renderErrorPage(w, r, http.StatusBadRequest, "Missing Post", "Post content cannot be empty.", fmt.Sprintf("/view/thread/%d", threadID))
 			return
 		}
 
@@ -426,7 +444,7 @@ func serveThreadView(w http.ResponseWriter, r *http.Request) {
 		post, err := createPost(db, threadID, author, content)
 		if err != nil {
 			log.Errorf("Failed to create post: %v", err)
-			http.Error(w, "Failed to create post", http.StatusInternalServerError)
+			renderErrorPage(w, r, http.StatusInternalServerError, "Post Failed", "We couldn't create that reply. Please try again.", fmt.Sprintf("/view/thread/%d", threadID))
 			return
 		}
 
@@ -437,7 +455,7 @@ func serveThreadView(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, fmt.Sprintf("/view/thread/%d", threadID), http.StatusSeeOther)
 
 	} else {
-		http.NotFound(w, r)
+		renderErrorPage(w, r, http.StatusNotFound, "Not Found", "That page does not exist.", "/")
 	}
 }
 
@@ -1082,6 +1100,21 @@ func respondJSON(w http.ResponseWriter, data interface{}) {
 	_ = enc.Encode(data)
 }
 
+func renderErrorPage(w http.ResponseWriter, r *http.Request, status int, title, message, backURL string) {
+	authData := getAuthViewData(r)
+	data := ErrorViewData{
+		AuthViewData: authData,
+		Title:        title,
+		Message:      message,
+		BackURL:      backURL,
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+	if err := templates.ExecuteTemplate(w, "error.html", data); err != nil {
+		http.Error(w, message, status)
+	}
+}
+
 func hashPassword(password string) (string, error) {
 	salt := make([]byte, 16)
 	if _, err := rand.Read(salt); err != nil {
@@ -1323,6 +1356,14 @@ func verifyJWT(token string) (string, bool) {
 // ------------------- Auth Handlers -------------------
 
 func serveLogin(w http.ResponseWriter, r *http.Request) {
+	if _, ok := getAuthenticatedUsername(r); ok {
+		next := sanitizeNext(r.URL.Query().Get("next"))
+		if next == "" {
+			next = "/profile"
+		}
+		http.Redirect(w, r, next, http.StatusSeeOther)
+		return
+	}
 	switch r.Method {
 	case http.MethodGet:
 		authData := getAuthViewData(r)
@@ -1366,7 +1407,7 @@ func serveLogin(w http.ResponseWriter, r *http.Request) {
 		}
 
 	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")
 	}
 }
 
@@ -1386,17 +1427,17 @@ func serveProfile(w http.ResponseWriter, r *http.Request) {
 	username, _ := getAuthenticatedUsername(r)
 	user, err := getUserByUsername(db, username)
 	if err != nil {
-		http.Error(w, "Failed to load profile", http.StatusInternalServerError)
+		renderErrorPage(w, r, http.StatusInternalServerError, "Profile Unavailable", "We couldn't load your profile.", "/")
 		return
 	}
 	threads, err := getThreadsByAuthor(db, username)
 	if err != nil {
-		http.Error(w, "Failed to load threads", http.StatusInternalServerError)
+		renderErrorPage(w, r, http.StatusInternalServerError, "Threads Unavailable", "We couldn't load your threads.", "/profile")
 		return
 	}
 	posts, err := getPostsByAuthor(db, username)
 	if err != nil {
-		http.Error(w, "Failed to load posts", http.StatusInternalServerError)
+		renderErrorPage(w, r, http.StatusInternalServerError, "Comments Unavailable", "We couldn't load your comments.", "/profile")
 		return
 	}
 
@@ -1417,7 +1458,7 @@ func serveUserLookup(w http.ResponseWriter, r *http.Request) {
 	authData := getAuthViewData(r)
 	if r.Method == http.MethodPost {
 		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+			renderErrorPage(w, r, http.StatusBadRequest, "Invalid Form", "We couldn't read that form submission.", "/user")
 			return
 		}
 		username := strings.TrimSpace(r.FormValue("username"))
@@ -1446,22 +1487,22 @@ func serveUserLookup(w http.ResponseWriter, r *http.Request) {
 func servePublicProfile(w http.ResponseWriter, r *http.Request) {
 	username := mux.Vars(r)["username"]
 	if strings.TrimSpace(username) == "" {
-		http.NotFound(w, r)
+		renderErrorPage(w, r, http.StatusNotFound, "User Not Found", "We couldn't find that user.", "/user")
 		return
 	}
 	user, err := getUserByUsername(db, username)
 	if err != nil {
-		http.Error(w, "User not found", http.StatusNotFound)
+		renderErrorPage(w, r, http.StatusNotFound, "User Not Found", "We couldn't find that user.", "/user")
 		return
 	}
 	threads, err := getThreadsByAuthor(db, username)
 	if err != nil {
-		http.Error(w, "Failed to load threads", http.StatusInternalServerError)
+		renderErrorPage(w, r, http.StatusInternalServerError, "Threads Unavailable", "We couldn't load this user's threads.", "/user")
 		return
 	}
 	posts, err := getPostsByAuthor(db, username)
 	if err != nil {
-		http.Error(w, "Failed to load posts", http.StatusInternalServerError)
+		renderErrorPage(w, r, http.StatusInternalServerError, "Comments Unavailable", "We couldn't load this user's comments.", "/user")
 		return
 	}
 
@@ -1503,6 +1544,14 @@ func authTokenHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveSignup(w http.ResponseWriter, r *http.Request) {
+	if _, ok := getAuthenticatedUsername(r); ok {
+		next := sanitizeNext(r.URL.Query().Get("next"))
+		if next == "" {
+			next = "/profile"
+		}
+		http.Redirect(w, r, next, http.StatusSeeOther)
+		return
+	}
 	switch r.Method {
 	case http.MethodGet:
 		authData := getAuthViewData(r)
@@ -1542,7 +1591,7 @@ func serveSignup(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, next, http.StatusSeeOther)
 
 	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")
 	}
 }
 

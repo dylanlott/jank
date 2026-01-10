@@ -34,6 +34,12 @@
             color: #6c757d;
             margin-bottom: 20px;
         }
+        .auth-bar {
+            text-align: right;
+            margin-bottom: 15px;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
         .threads {
             list-style-type: none;
             padding: 0;
@@ -55,6 +61,10 @@
             color: #343a40;
         }
         .thread-date {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .thread-author {
             color: #6c757d;
             font-size: 0.9em;
         }
@@ -92,10 +102,24 @@
     </header>
 
     <div class="container">
+        <div class="auth-bar">
+            <a href="/">Home</a> ·
+            <a href="/user">Profiles</a> ·
+            {{if .IsAuthenticated}}
+                User: <a href="/profile">{{.Username}}</a> · <a href="/logout?next={{.CurrentPath | urlquery}}">Log out</a>
+            {{else}}
+                <a href="/login?next={{.CurrentPath | urlquery}}">Log in</a> ·
+                <a href="/signup?next={{.CurrentPath | urlquery}}">Sign up</a>
+            {{end}}
+        </div>
         <div class="board-title">{{.Board.Name}} (Board #{{.Board.ID}})</div>
         <div class="board-meta">{{.Board.Description}}</div>
 
-        <a href="/view/board/newthread/{{.Board.ID}}">Create a new thread</a>
+        {{if .IsAuthenticated}}
+            <a href="/view/board/newthread/{{.Board.ID}}">Create a new thread</a>
+        {{else}}
+            <a href="/login?next={{.CurrentPath | urlquery}}">Log in to create a new thread</a>
+        {{end}}
 
         <h2>Threads</h2>
         {{if .Board.Threads}}
@@ -104,13 +128,21 @@
                 <li class="thread">
                     <div class="thread-header">
                         <div class="thread-title"><a href="/view/thread/{{.ID}}">Thread #{{.ID}}: {{.Title}}</a></div>
-                        <div class="thread-date">Created: {{.Created}}</div>
+                        <div class="thread-date">Created: {{.Created.Format "Jan 2, 2006 at 3:04pm"}}</div>
                     </div>
+                    {{if .Author}}
+                        <div class="thread-author">Started by <a href="/user/{{.Author | urlquery}}">{{.Author}}</a></div>
+                    {{end}}
                 </li>
             {{end}}
             </ul>
         {{else}}
             <p>No threads yet. Be the first to create one!</p>
+            {{if .IsAuthenticated}}
+                <p><a href="/view/board/newthread/{{.Board.ID}}">Start a new thread</a></p>
+            {{else}}
+                <p><a href="/login?next={{.CurrentPath | urlquery}}">Log in to start a thread</a></p>
+            {{end}}
         {{end}}
 
         <footer>
@@ -139,4 +171,3 @@
     </script>
 </body>
 </html>
-

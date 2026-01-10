@@ -75,6 +75,16 @@
         .new-post-form {
             margin-top: 30px;
         }
+        .auth-bar {
+            text-align: right;
+            margin-bottom: 15px;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .muted {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
         .new-post-form h2 {
             margin-bottom: 10px;
             color: #343a40;
@@ -140,8 +150,21 @@
     </header>
 
     <div class="container">
+        <div class="auth-bar">
+            <a href="/">Home</a> ·
+            <a href="/user">Profiles</a> ·
+            {{if .IsAuthenticated}}
+                User: <a href="/profile">{{.Username}}</a> · <a href="/logout?next={{.CurrentPath | urlquery}}">Log out</a>
+            {{else}}
+                <a href="/login?next={{.CurrentPath | urlquery}}">Log in</a> ·
+                <a href="/signup?next={{.CurrentPath | urlquery}}">Sign up</a>
+            {{end}}
+        </div>
         <div class="thread-title">{{.Thread.Title}} (Thread #{{.Thread.ID}})</div>
-        <div class="thread-meta">Created on: {{.Thread.Created.Format "Jan 2, 2006 at 3:04pm"}}</div>
+        <div class="thread-meta">
+            Created on: {{.Thread.Created.Format "Jan 2, 2006 at 3:04pm"}}
+            {{if .Thread.Author}} · Started by <a href="/user/{{.Thread.Author | urlquery}}">{{.Thread.Author}}</a>{{end}}
+        </div>
 
         <ul class="posts">
             {{if .Thread.Posts}}
@@ -159,22 +182,30 @@
             {{else}}
                 <li class="post">
                     <div class="post-content">No posts yet. Be the first to reply!</div>
+                    {{if .IsAuthenticated}}
+                        <div class="muted"><a href="#reply">Jump to reply</a></div>
+                    {{else}}
+                        <div class="muted"><a href="/login?next={{.CurrentPath | urlquery}}">Log in to reply</a></div>
+                    {{end}}
                 </li>
             {{end}}
         </ul>
 
-        <div class="new-post-form">
-            <h2>Reply to this Thread</h2>
-            <form method="POST" action="/view/thread/{{.Thread.ID}}/post">
-                <label for="author">Your Name:</label>
-                <input type="text" id="author" name="author" placeholder="Anonymous" />
+        {{if .IsAuthenticated}}
+            <div class="new-post-form">
+                <h2 id="reply">Reply to this Thread</h2>
+                <p class="muted">Posting as {{.Username}}</p>
+                <form method="POST" action="/view/thread/{{.Thread.ID}}/post">
+                    <label for="content">Your Post:</label>
+                    <textarea id="content" name="content" rows="5" placeholder="Enter your message here..." required></textarea>
 
-                <label for="content">Your Post:</label>
-                <textarea id="content" name="content" rows="5" placeholder="Enter your message here..." required></textarea>
-
-                <button type="submit">Post Reply</button>
-            </form>
-        </div>
+                    <button type="submit">Post Reply</button>
+                </form>
+            </div>
+        {{else}}
+            <p>You must be signed in to reply.</p>
+            <p><a href="/login?next={{.CurrentPath | urlquery}}">Log in</a> or <a href="/signup?next={{.CurrentPath | urlquery}}">sign up</a> to post.</p>
+        {{end}}
 
         <footer>
             <p><a href="/view/board/{{.BoardID}}">← Back to Board</a></p>

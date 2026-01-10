@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8" />
-    <title>/jank/home/</title>
+    <title>/jank/ - error</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter&display=swap" />
     <style>
         body {
@@ -19,7 +19,7 @@
         }
         .container {
             width: 90%;
-            max-width: 800px;
+            max-width: 700px;
             margin: 20px auto;
             background-color: #fff;
             padding: 20px;
@@ -31,29 +31,17 @@
             color: #6c757d;
             font-size: 0.9em;
         }
-        .board-list {
-            list-style-type: none;
-            padding: 0;
-        }
-        .board-item {
-            border-bottom: 1px solid #ddd;
-            padding: 15px 0;
-        }
-        .board-item:last-child {
-            border-bottom: none;
-        }
-        .board-title {
-            font-weight: bold;
+        .error-title {
+            margin: 0 0 10px 0;
             color: #343a40;
         }
-        .board-description {
-            color: #6c757d;
-            margin-top: 5px;
+        .error-message {
+            color: #495057;
+            margin-bottom: 20px;
         }
-        footer {
-            text-align: center;
-            margin-top: 40px;
-            color: #6c757d;
+        .actions a {
+            display: inline-block;
+            margin-right: 10px;
         }
         a {
             color: #007bff;
@@ -66,7 +54,7 @@
 </head>
 <body>
     <header>
-        <h1>/jank/ - an MTG message board</h1>
+        <h1>/jank/</h1>
     </header>
 
     <div class="container">
@@ -80,19 +68,13 @@
                 <a href="/signup?next={{.CurrentPath | urlquery}}">Sign up</a>
             {{end}}
         </div>
-        <h2>Boards</h2>
-        <ul class="board-list">
-            {{range .Boards}}
-                <li class="board-item">
-                    <div class="board-title"><a href="/view/board/{{.ID}}">{{.Name}}</a></div>
-                    <div class="board-description">{{.Description}}</div>
-                </li>
-            {{end}}
-        </ul>
 
-        <footer>
-            <p>/jank/</p>
-        </footer>
+        <h2 class="error-title">{{.Title}}</h2>
+        <p class="error-message">{{.Message}}</p>
+        <div class="actions">
+            <a href="{{if .BackURL}}{{.BackURL}}{{else}}/{{end}}">Go back</a>
+            <a href="/">Home</a>
+        </div>
     </div>
 </body>
 </html>

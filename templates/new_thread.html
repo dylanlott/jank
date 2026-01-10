@@ -28,6 +28,16 @@
         .new-thread-form {
             margin-top: 30px;
         }
+        .auth-bar {
+            text-align: right;
+            margin-bottom: 15px;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .muted {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
         .new-thread-form h2 {
             margin-bottom: 10px;
             color: #343a40;
@@ -80,18 +90,35 @@
     </header>
 
     <div class="container">
-        <div class="new-thread-form">
-            <h2>Create a New Thread</h2>
-            <form method="POST" action="/view/board/newthread/{{.BoardID}}">
-                <label for="title">Thread Title:</label>
-                <input type="text" id="title" name="title" required />
-
-                <label for="content">Content:</label>
-                <textarea id="content" name="content" rows="5" required></textarea>
-
-                <button type="submit">Create Thread</button>
-            </form>
+        <div class="auth-bar">
+            <a href="/">Home</a> ·
+            <a href="/user">Profiles</a> ·
+            {{if .IsAuthenticated}}
+                User: <a href="/profile">{{.Username}}</a> · <a href="/logout?next={{.CurrentPath | urlquery}}">Log out</a>
+            {{else}}
+                <a href="/login?next={{.CurrentPath | urlquery}}">Log in</a> ·
+                <a href="/signup?next={{.CurrentPath | urlquery}}">Sign up</a>
+            {{end}}
         </div>
+
+        {{if .IsAuthenticated}}
+            <div class="new-thread-form">
+                <h2>Create a New Thread</h2>
+                <p class="muted">Posting as {{.Username}}</p>
+                <form method="POST" action="/view/board/newthread/{{.BoardID}}">
+                    <label for="title">Thread Title:</label>
+                    <input type="text" id="title" name="title" required />
+
+                    <label for="content">Content:</label>
+                    <textarea id="content" name="content" rows="5" required></textarea>
+
+                    <button type="submit">Create Thread</button>
+                </form>
+            </div>
+        {{else}}
+            <p>You must be signed in to create a thread.</p>
+            <p><a href="/login?next={{.CurrentPath | urlquery}}">Log in</a> or <a href="/signup?next={{.CurrentPath | urlquery}}">sign up</a> to post.</p>
+        {{end}}
 
         <footer>
             <p><a href="/view/board/{{.BoardID}}">← Back to Board</a></p>
