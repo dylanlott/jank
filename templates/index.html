@@ -1,35 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8" />
+    {{template "shared_head"}}
     <title>/jank/home/</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter&display=swap" />
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        header {
-            background-color: #343a40;
-            color: #fff;
-            padding: 15px 20px;
-            text-align: center;
-        }
+        {{template "shared_styles"}}
         .container {
-            width: 90%;
             max-width: 800px;
-            margin: 20px auto;
-            background-color: #fff;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        .auth-bar {
-            text-align: right;
-            margin-bottom: 15px;
-            color: #6c757d;
-            font-size: 0.9em;
         }
         .board-list {
             list-style-type: none;
@@ -51,16 +28,7 @@
             margin-top: 5px;
         }
         footer {
-            text-align: center;
             margin-top: 40px;
-            color: #6c757d;
-        }
-        a {
-            color: #007bff;
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
         }
     </style>
 </head>

@@ -1,29 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8" />
+    {{template "shared_head"}}
     <title>/jank/{{.Board.Name}}/</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter&display=swap" />
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        header {
-            background-color: #343a40;
-            color: #fff;
-            padding: 15px 20px;
-            text-align: center;
-        }
+        {{template "shared_styles"}}
         .container {
-            width: 90%;
             max-width: 800px;
-            margin: 20px auto;
-            background-color: #fff;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
         .board-title {
             font-size: 1.8em;
@@ -33,12 +16,6 @@
         .board-meta {
             color: #6c757d;
             margin-bottom: 20px;
-        }
-        .auth-bar {
-            text-align: right;
-            margin-bottom: 15px;
-            color: #6c757d;
-            font-size: 0.9em;
         }
         .threads {
             list-style-type: none;
@@ -69,16 +46,7 @@
             font-size: 0.9em;
         }
         footer {
-            text-align: center;
             margin-top: 40px;
-            color: #6c757d;
-        }
-        a {
-            color: #007bff;
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
         }
         @media (max-width: 600px) {
             .thread-header {
@@ -88,11 +56,6 @@
             .thread-date {
                 margin-top: 5px;
             }
-        }
-        .mtg-card {
-            font-weight: bold;
-            font-weight: 600;
-            color: #d9534f; /* Example color for card names */
         }
     </style>
 </head>
