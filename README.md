@@ -19,6 +19,48 @@ To run the server:
 go run main.go
 ```
 
+### Forum authentication (HTML views)
+
+Posting threads or comments via the HTML views requires a login cookie. Configure credentials with:
+
+```sh
+export JANK_FORUM_USER="admin"
+export JANK_FORUM_PASS="admin"
+export JANK_FORUM_SECRET="change-me"
+export JANK_JWT_SECRET="change-me-too"
+```
+
+You can also sign up via `/signup` to create additional users.
+
+### JSON API authentication (JWT)
+
+Creating or deleting boards, and creating threads or posts via the JSON API requires a JWT in the `Authorization` header.
+
+Issue a token:
+
+```sh
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin"}' \
+  http://localhost:8080/auth/token
+```
+
+Create a user and receive a token:
+
+```sh
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"username":"newuser","password":"changeme"}' \
+  http://localhost:8080/auth/signup
+```
+
+Use the token:
+
+```sh
+curl -X POST -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"title":"Dimir control is OP"}' \
+  http://localhost:8080/threads/2
+```
+
 ## Testing
 
 ### Create a board
