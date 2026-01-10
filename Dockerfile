@@ -6,6 +6,12 @@ FROM golang:1.23-alpine AS build
 # Create and set the working directory
 WORKDIR /app
 
+# Install build dependencies for cgo + sqlite3
+RUN apk add --no-cache build-base sqlite-dev
+
+# Ensure cgo is enabled for go-sqlite3
+ENV CGO_ENABLED=1
+
 # Copy go.mod and go.sum first for dependency download caching
 COPY go.mod go.sum ./
 RUN go mod download
@@ -24,6 +30,9 @@ FROM alpine:3.18
 # Create an app directory
 WORKDIR /app
 
+# Runtime sqlite dependency for cgo-linked binary
+RUN apk add --no-cache sqlite-libs
+
 # Copy the compiled binary from the build stage
 COPY --from=build /app/server /app/
 
@@ -35,4 +44,3 @@ EXPOSE 8080
 
 # Run the server binary
 ENTRYPOINT ["/app/server"]
-
