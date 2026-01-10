@@ -1,0 +1,460 @@
+package app
+
+import (
+	"fmt"
+	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
+
+	"github.com/gorilla/mux"
+)
+
+// ------------------- HTML Handlers -------------------
+
+// serveIndex executes index.html, showing a list of boards with links.
+func serveIndex(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		renderErrorPage(w, r, http.StatusNotFound, "Not Found", "That page does not exist.", "/")
+		return
+	}
+
+	boards, err := getAllBoards(db)
+	if err != nil {
+		log.Errorf("Failed to retrieve boards: %v", err)
+		renderErrorPage(w, r, http.StatusInternalServerError, "Boards Unavailable", "Failed to load boards. Please try again.", "/")
+		return
+	}
+
+	authData := getAuthViewData(r)
+	data := IndexViewData{
+		AuthViewData: authData,
+		Title:        "Welcome to /jank/",
+		Description:  "Select a board below to view its threads.",
+		Boards:       boards,
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "index.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// serveBoardView executes board.html for a specific board (by ID).
+func serveBoardView(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	boardIDStr := vars["boardID"]
+	boardID, err := strconv.Atoi(boardIDStr)
+	if err != nil {
+		renderErrorPage(w, r, http.StatusBadRequest, "Invalid Board", "That board ID is not valid.", "/")
+		return
+	}
+
+	board, err := getBoardByID(db, boardID, true)
+	if err != nil {
+		log.Errorf("Board not found: %v", err)
+		renderErrorPage(w, r, http.StatusNotFound, "Board Not Found", "We couldn't find that board.", "/")
+		return
+	}
+
+	authData := getAuthViewData(r)
+	data := BoardViewData{
+		AuthViewData: authData,
+		Board:        board,
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "board.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// serveNewThread lets a user create a new thread for a specific board.
+func serveNewThread(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	boardIDStr := vars["boardID"]
+	boardID, err := strconv.Atoi(boardIDStr)
+	if err != nil {
+		renderErrorPage(w, r, http.StatusBadRequest, "Invalid Board", "That board ID is not valid.", "/")
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		authData := getAuthViewData(r)
+		data := NewThreadViewData{
+			AuthViewData: authData,
+			BoardID:      boardID,
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if err := templates.ExecuteTemplate(w, "new_thread.html", data); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
+	case http.MethodPost:
+		if !requireAuth(w, r) {
+			return
+		}
+		username, _ := getAuthenticatedUsername(r)
+		if err := r.ParseForm(); err != nil {
+			renderErrorPage(w, r, http.StatusBadRequest, "Invalid Form", "We couldn't read that form submission.", fmt.Sprintf("/view/board/%d", boardID))
+			return
+		}
+		title := strings.TrimSpace(r.FormValue("title"))
+		if title == "" {
+			renderErrorPage(w, r, http.StatusBadRequest, "Missing Title", "Thread title cannot be empty.", fmt.Sprintf("/view/board/newthread/%d", boardID))
+			return
+		}
+		content := strings.TrimSpace(r.FormValue("content"))
+		if content == "" {
+			renderErrorPage(w, r, http.StatusBadRequest, "Missing Post", "Thread content cannot be empty.", fmt.Sprintf("/view/board/newthread/%d", boardID))
+			return
+		}
+
+		thread, err := createThread(db, boardID, title, username)
+		if err != nil {
+			log.Errorf("Failed to create thread: %v", err)
+			renderErrorPage(w, r, http.StatusInternalServerError, "Create Thread Failed", "We couldn't create that thread. Please try again.", fmt.Sprintf("/view/board/%d", boardID))
+			return
+		}
+		if _, err := createPost(db, thread.ID, username, content); err != nil {
+			log.Errorf("Failed to create starter post: %v", err)
+			renderErrorPage(w, r, http.StatusInternalServerError, "Post Failed", "We couldn't save your post. Please try again.", fmt.Sprintf("/view/board/%d", boardID))
+			return
+		}
+
+		log.Infof("Created thread: ID=%d, Title=%s, BoardID=%d", thread.ID, thread.Title, boardID)
+		http.Redirect(w, r, fmt.Sprintf("/view/board/%d", boardID), http.StatusSeeOther)
+
+	default:
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", fmt.Sprintf("/view/board/%d", boardID))
+	}
+}
+
+// serveThreadView handles both displaying a thread and adding new posts.
+func serveThreadView(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	threadIDStr := vars["threadID"]
+	threadID, err := strconv.Atoi(threadIDStr)
+	if err != nil {
+		renderErrorPage(w, r, http.StatusBadRequest, "Invalid Thread", "That thread ID is not valid.", "/")
+		return
+	}
+
+	if r.Method == http.MethodGet {
+		thread, boardID, err := getThreadByID(db, threadID)
+		if err != nil {
+			log.Errorf("Thread not found: %v", err)
+			renderErrorPage(w, r, http.StatusNotFound, "Thread Not Found", "We couldn't find that thread.", "/")
+			return
+		}
+
+		authData := getAuthViewData(r)
+		data := ThreadViewData{
+			AuthViewData: authData,
+			Thread:       thread,
+			BoardID:      boardID,
+		}
+
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if err := templates.ExecuteTemplate(w, "thread.html", data); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		if !requireAuth(w, r) {
+			return
+		}
+		username, _ := getAuthenticatedUsername(r)
+		if err := r.ParseForm(); err != nil {
+			renderErrorPage(w, r, http.StatusBadRequest, "Invalid Form", "We couldn't read that form submission.", fmt.Sprintf("/view/thread/%d", threadID))
+			return
+		}
+		content := strings.TrimSpace(r.FormValue("content"))
+		if content == "" {
+			renderErrorPage(w, r, http.StatusBadRequest, "Missing Post", "Post content cannot be empty.", fmt.Sprintf("/view/thread/%d", threadID))
+			return
+		}
+
+		author := username
+		post, err := createPost(db, threadID, author, content)
+		if err != nil {
+			log.Errorf("Failed to create post: %v", err)
+			renderErrorPage(w, r, http.StatusInternalServerError, "Post Failed", "We couldn't create that reply. Please try again.", fmt.Sprintf("/view/thread/%d", threadID))
+			return
+		}
+
+		log.Infof("Created post: ID=%d, Author=%s, ThreadID=%d", post.ID, post.Author, threadID)
+		http.Redirect(w, r, fmt.Sprintf("/view/thread/%d", threadID), http.StatusSeeOther)
+		return
+	}
+
+	renderErrorPage(w, r, http.StatusNotFound, "Not Found", "That page does not exist.", "/")
+}
+
+func serveLogin(w http.ResponseWriter, r *http.Request) {
+	if _, ok := getAuthenticatedUsername(r); ok {
+		next := sanitizeNext(r.URL.Query().Get("next"))
+		if next == "" {
+			next = "/profile"
+		}
+		http.Redirect(w, r, next, http.StatusSeeOther)
+		return
+	}
+	switch r.Method {
+	case http.MethodGet:
+		authData := getAuthViewData(r)
+		next := sanitizeNext(r.URL.Query().Get("next"))
+		data := LoginViewData{
+			AuthViewData: authData,
+			Next:         next,
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if err := templates.ExecuteTemplate(w, "login.html", data); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
+	case http.MethodPost:
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+			return
+		}
+		username := strings.TrimSpace(r.FormValue("username"))
+		password := r.FormValue("password")
+		next := sanitizeNext(r.FormValue("next"))
+
+		if authenticateUser(db, username, password) {
+			setAuthCookie(w, r, username)
+			if next == "" {
+				next = "/"
+			}
+			http.Redirect(w, r, next, http.StatusSeeOther)
+			return
+		}
+
+		authData := getAuthViewData(r)
+		data := LoginViewData{
+			AuthViewData: authData,
+			Next:         next,
+			Error:        "Invalid username or password.",
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if err := templates.ExecuteTemplate(w, "login.html", data); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
+	default:
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")
+	}
+}
+
+func serveLogout(w http.ResponseWriter, r *http.Request) {
+	clearAuthCookie(w)
+	next := sanitizeNext(r.URL.Query().Get("next"))
+	if next == "" {
+		next = "/"
+	}
+	http.Redirect(w, r, next, http.StatusSeeOther)
+}
+
+func serveProfile(w http.ResponseWriter, r *http.Request) {
+	if !requireAuth(w, r) {
+		return
+	}
+	username, _ := getAuthenticatedUsername(r)
+	user, err := getUserByUsername(db, username)
+	if err != nil {
+		renderErrorPage(w, r, http.StatusInternalServerError, "Profile Unavailable", "We couldn't load your profile.", "/")
+		return
+	}
+	threads, err := getThreadsByAuthor(db, username)
+	if err != nil {
+		renderErrorPage(w, r, http.StatusInternalServerError, "Threads Unavailable", "We couldn't load your threads.", "/profile")
+		return
+	}
+	posts, err := getPostsByAuthor(db, username)
+	if err != nil {
+		renderErrorPage(w, r, http.StatusInternalServerError, "Comments Unavailable", "We couldn't load your comments.", "/profile")
+		return
+	}
+
+	authData := getAuthViewData(r)
+	data := ProfileViewData{
+		AuthViewData: authData,
+		User:         user,
+		Threads:      threads,
+		Posts:        posts,
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "profile.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func serveUserLookup(w http.ResponseWriter, r *http.Request) {
+	authData := getAuthViewData(r)
+	if r.Method == http.MethodPost {
+		if err := r.ParseForm(); err != nil {
+			renderErrorPage(w, r, http.StatusBadRequest, "Invalid Form", "We couldn't read that form submission.", "/user")
+			return
+		}
+		username := strings.TrimSpace(r.FormValue("username"))
+		if username == "" {
+			data := UserLookupViewData{
+				AuthViewData: authData,
+				Error:        "Please enter a username.",
+			}
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			if err := templates.ExecuteTemplate(w, "user_lookup.html", data); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			return
+		}
+		http.Redirect(w, r, "/user/"+url.PathEscape(username), http.StatusSeeOther)
+		return
+	}
+
+	data := UserLookupViewData{AuthViewData: authData}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "user_lookup.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func servePublicProfile(w http.ResponseWriter, r *http.Request) {
+	username := mux.Vars(r)["username"]
+	if strings.TrimSpace(username) == "" {
+		renderErrorPage(w, r, http.StatusNotFound, "User Not Found", "We couldn't find that user.", "/user")
+		return
+	}
+	user, err := getUserByUsername(db, username)
+	if err != nil {
+		renderErrorPage(w, r, http.StatusNotFound, "User Not Found", "We couldn't find that user.", "/user")
+		return
+	}
+	threads, err := getThreadsByAuthor(db, username)
+	if err != nil {
+		renderErrorPage(w, r, http.StatusInternalServerError, "Threads Unavailable", "We couldn't load this user's threads.", "/user")
+		return
+	}
+	posts, err := getPostsByAuthor(db, username)
+	if err != nil {
+		renderErrorPage(w, r, http.StatusInternalServerError, "Comments Unavailable", "We couldn't load this user's comments.", "/user")
+		return
+	}
+
+	authData := getAuthViewData(r)
+	data := PublicProfileViewData{
+		AuthViewData: authData,
+		User:         user,
+		Threads:      threads,
+		Posts:        posts,
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "public_profile.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func serveSignup(w http.ResponseWriter, r *http.Request) {
+	if _, ok := getAuthenticatedUsername(r); ok {
+		next := sanitizeNext(r.URL.Query().Get("next"))
+		if next == "" {
+			next = "/profile"
+		}
+		http.Redirect(w, r, next, http.StatusSeeOther)
+		return
+	}
+	switch r.Method {
+	case http.MethodGet:
+		authData := getAuthViewData(r)
+		next := sanitizeNext(r.URL.Query().Get("next"))
+		data := SignupViewData{
+			AuthViewData: authData,
+			Next:         next,
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if err := templates.ExecuteTemplate(w, "signup.html", data); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
+	case http.MethodPost:
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+			return
+		}
+		username := strings.TrimSpace(r.FormValue("username"))
+		password := r.FormValue("password")
+		next := sanitizeNext(r.FormValue("next"))
+
+		if username == "" || password == "" {
+			renderSignupError(w, r, next, "Username and password are required.")
+			return
+		}
+		if _, err := createUser(db, username, password); err != nil {
+			log.Errorf("Failed to create user: %v", err)
+			renderSignupError(w, r, next, signupErrorMessage(err))
+			return
+		}
+
+		setAuthCookie(w, r, username)
+		if next == "" {
+			next = "/"
+		}
+		http.Redirect(w, r, next, http.StatusSeeOther)
+
+	default:
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")
+	}
+}
+
+func renderErrorPage(w http.ResponseWriter, r *http.Request, status int, title, message, backURL string) {
+	authData := getAuthViewData(r)
+	data := ErrorViewData{
+		AuthViewData: authData,
+		Title:        title,
+		Message:      message,
+		BackURL:      backURL,
+	}
+	w.WriteHeader(status)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "error.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func renderSignupError(w http.ResponseWriter, r *http.Request, next, message string) {
+	authData := getAuthViewData(r)
+	data := SignupViewData{
+		AuthViewData: authData,
+		Next:         next,
+		Error:        message,
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "signup.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func signupErrorMessage(err error) string {
+	if err == nil {
+		return "Failed to create account."
+	}
+	if strings.Contains(strings.ToLower(err.Error()), "exists") {
+		return "That username is already taken."
+	}
+	return "Failed to create account."
+}
+
+func sanitizeNext(next string) string {
+	next = strings.TrimSpace(next)
+	if next == "" {
+		return ""
+	}
+	if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") {
+		return ""
+	}
+	return next
+}

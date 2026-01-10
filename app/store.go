@@ -1,0 +1,493 @@
+package app
+
+import (
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"database/sql"
+	"encoding/base64"
+	"fmt"
+	"math/big"
+	"strings"
+	"time"
+)
+
+// ------------------- Database & Utility -------------------
+
+// migrate creates the necessary tables if they don't exist.
+func migrate(db *sql.DB) error {
+	boardsStmt := `
+	CREATE TABLE IF NOT EXISTS boards (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT NOT NULL,
+		description TEXT
+	);`
+	usersStmt := `
+	CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT NOT NULL UNIQUE,
+		password_hash TEXT NOT NULL,
+		created DATETIME NOT NULL
+	);`
+	threadsStmt := `
+	CREATE TABLE IF NOT EXISTS threads (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		board_id INTEGER NOT NULL,
+		title TEXT NOT NULL,
+		author TEXT,
+		created DATETIME NOT NULL,
+		FOREIGN KEY (board_id) REFERENCES boards(id)
+	);`
+	postsStmt := `
+	CREATE TABLE IF NOT EXISTS posts (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		thread_id INTEGER NOT NULL,
+		author TEXT,
+		content TEXT NOT NULL,
+		created DATETIME NOT NULL,
+		number TEXT,
+		flair TEXT,
+		FOREIGN KEY (thread_id) REFERENCES threads(id)
+	);`
+
+	if _, err := db.Exec(boardsStmt); err != nil {
+		return err
+	}
+	if _, err := db.Exec(usersStmt); err != nil {
+		return err
+	}
+	if _, err := db.Exec(threadsStmt); err != nil {
+		return err
+	}
+	if err := ensureThreadsAuthorColumn(db); err != nil {
+		return err
+	}
+	if _, err := db.Exec(postsStmt); err != nil {
+		return err
+	}
+	return nil
+}
+
+// seedData inserts a default board if none exist.
+func seedData(db *sql.DB) error {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM boards").Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		_, err := db.Exec(`INSERT INTO boards (name, description) VALUES (?, ?)`, "/test/", "A test board.")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func ensureThreadsAuthorColumn(db *sql.DB) error {
+	_, err := db.Exec(`ALTER TABLE threads ADD COLUMN author TEXT`)
+	if err == nil {
+		_, _ = db.Exec(`UPDATE threads SET author = '' WHERE author IS NULL`)
+		return nil
+	}
+	lower := strings.ToLower(err.Error())
+	if strings.Contains(lower, "duplicate column") || strings.Contains(lower, "already exists") {
+		_, _ = db.Exec(`UPDATE threads SET author = '' WHERE author IS NULL`)
+		return nil
+	}
+	return err
+}
+
+// ensureSeedUser creates a default user when none exists for the configured username.
+func ensureSeedUser(db *sql.DB, username, password string) error {
+	if username == "" || password == "" {
+		return nil
+	}
+	if userExists(db, username) {
+		return nil
+	}
+	_, err := createUser(db, username, password)
+	return err
+}
+
+// createBoard inserts a new board into the database.
+func createBoard(db *sql.DB, name, description string) (*Board, error) {
+	result, err := db.Exec(`INSERT INTO boards (name, description) VALUES (?, ?)`, name, description)
+	if err != nil {
+		return nil, err
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	return &Board{
+		ID:          int(id),
+		Name:        name,
+		Description: description,
+		Threads:     []*Thread{},
+	}, nil
+}
+
+// getAllBoards retrieves all boards from the database.
+func getAllBoards(db *sql.DB) ([]*Board, error) {
+	rows, err := db.Query(`SELECT id, name, description FROM boards`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var boards []*Board
+	for rows.Next() {
+		var b Board
+		if err := rows.Scan(&b.ID, &b.Name, &b.Description); err != nil {
+			return nil, err
+		}
+		boards = append(boards, &b)
+	}
+	return boards, nil
+}
+
+// getBoardByID retrieves a specific board by ID, optionally loading its threads.
+func getBoardByID(db *sql.DB, boardID int, loadThreads bool) (*Board, error) {
+	var b Board
+	err := db.QueryRow(`SELECT id, name, description FROM boards WHERE id = ?`, boardID).
+		Scan(&b.ID, &b.Name, &b.Description)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("board not found")
+	} else if err != nil {
+		return nil, err
+	}
+
+	if loadThreads {
+		threads, err := getThreadsByBoardID(db, boardID, true)
+		if err != nil {
+			return nil, err
+		}
+		b.Threads = threads
+	}
+	return &b, nil
+}
+
+func userExists(db *sql.DB, username string) bool {
+	var id int
+	err := db.QueryRow(`SELECT id FROM users WHERE username = ?`, username).Scan(&id)
+	if err == sql.ErrNoRows {
+		return false
+	}
+	return err == nil
+}
+
+func createUser(db *sql.DB, username, password string) (*User, error) {
+	if userExists(db, username) {
+		return nil, fmt.Errorf("username already exists")
+	}
+	passwordHash, err := hashPassword(password)
+	if err != nil {
+		return nil, err
+	}
+	now := time.Now()
+	result, err := db.Exec(`INSERT INTO users (username, password_hash, created) VALUES (?, ?, ?)`, username, passwordHash, now)
+	if err != nil {
+		return nil, err
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	return &User{
+		ID:           int(id),
+		Username:     username,
+		PasswordHash: passwordHash,
+		Created:      now,
+	}, nil
+}
+
+func getUserPasswordHash(db *sql.DB, username string) (string, error) {
+	var passwordHash string
+	err := db.QueryRow(`SELECT password_hash FROM users WHERE username = ?`, username).Scan(&passwordHash)
+	if err != nil {
+		return "", err
+	}
+	return passwordHash, nil
+}
+
+func getUserByUsername(db *sql.DB, username string) (*User, error) {
+	var user User
+	err := db.QueryRow(`SELECT id, username, password_hash, created FROM users WHERE username = ?`, username).
+		Scan(&user.ID, &user.Username, &user.PasswordHash, &user.Created)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("user not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func getThreadsByAuthor(db *sql.DB, username string) ([]*ProfileThread, error) {
+	rows, err := db.Query(`
+		SELECT t.id, t.board_id, t.title, t.created
+		FROM threads t
+		LEFT JOIN (
+			SELECT thread_id, MIN(created) AS first_created
+			FROM posts
+			GROUP BY thread_id
+		) fp ON fp.thread_id = t.id
+		LEFT JOIN posts fp_post
+			ON fp_post.thread_id = t.id AND fp_post.created = fp.first_created
+		WHERE t.author = ?
+			OR ((t.author IS NULL OR t.author = '') AND fp_post.author = ?)
+		ORDER BY t.created DESC`, username, username)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var threads []*ProfileThread
+	for rows.Next() {
+		var t ProfileThread
+		if err := rows.Scan(&t.ID, &t.BoardID, &t.Title, &t.Created); err != nil {
+			return nil, err
+		}
+		threads = append(threads, &t)
+	}
+	return threads, nil
+}
+
+func getPostsByAuthor(db *sql.DB, username string) ([]*ProfilePost, error) {
+	rows, err := db.Query(`
+		SELECT posts.id, posts.thread_id, threads.title, posts.content, posts.created
+		FROM posts
+		JOIN threads ON posts.thread_id = threads.id
+		WHERE posts.author = ?
+		ORDER BY posts.created DESC`, username)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []*ProfilePost
+	for rows.Next() {
+		var p ProfilePost
+		if err := rows.Scan(&p.ID, &p.ThreadID, &p.ThreadTitle, &p.Content, &p.Created); err != nil {
+			return nil, err
+		}
+		posts = append(posts, &p)
+	}
+	return posts, nil
+}
+
+func authenticateUser(db *sql.DB, username, password string) bool {
+	if username == "" || password == "" {
+		return false
+	}
+	passwordHash, err := getUserPasswordHash(db, username)
+	if err != nil {
+		return false
+	}
+	return verifyPassword(password, passwordHash)
+}
+
+// createThread inserts a new thread into the database.
+func createThread(db *sql.DB, boardID int, title, author string) (*Thread, error) {
+	now := time.Now()
+	result, err := db.Exec(`
+		INSERT INTO threads (board_id, title, author, created) 
+		VALUES (?, ?, ?, ?)`,
+		boardID, title, author, now)
+	if err != nil {
+		return nil, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	return &Thread{
+		ID:      int(id),
+		Title:   title,
+		Author:  author,
+		Posts:   []*Post{},
+		Created: now,
+	}, nil
+}
+
+// getThreadsByBoardID retrieves all threads for a specific board, optionally loading their posts.
+func getThreadsByBoardID(db *sql.DB, boardID int, loadPosts bool) ([]*Thread, error) {
+	rows, err := db.Query(`
+		SELECT id, title, author, created
+		FROM threads
+		WHERE board_id = ?
+		ORDER BY created DESC`, boardID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var threads []*Thread
+	for rows.Next() {
+		var t Thread
+		var author sql.NullString
+		if err := rows.Scan(&t.ID, &t.Title, &author, &t.Created); err != nil {
+			return nil, err
+		}
+		t.Author = author.String
+
+		if loadPosts {
+			posts, err := getPostsByThreadID(db, t.ID)
+			if err != nil {
+				return nil, err
+			}
+			t.Posts = posts
+		}
+		threads = append(threads, &t)
+	}
+	return threads, nil
+}
+
+// getThreadByID retrieves a specific thread by ID, along with its posts and board ID.
+func getThreadByID(db *sql.DB, threadID int) (*Thread, int, error) {
+	var t Thread
+	var boardID int
+	var author sql.NullString
+	err := db.QueryRow(`SELECT id, board_id, title, author, created FROM threads WHERE id = ?`, threadID).
+		Scan(&t.ID, &boardID, &t.Title, &author, &t.Created)
+	if err == sql.ErrNoRows {
+		return nil, 0, fmt.Errorf("thread not found")
+	} else if err != nil {
+		return nil, 0, err
+	}
+	t.Author = author.String
+
+	posts, err := getPostsByThreadID(db, threadID)
+	if err != nil {
+		return nil, 0, err
+	}
+	t.Posts = posts
+
+	return &t, boardID, nil
+}
+
+// createPost inserts a new post into the database.
+func createPost(db *sql.DB, threadID int, author, content string) (*Post, error) {
+	now := time.Now()
+	number, flair := generateUniqueNumberAndFlair()
+	result, err := db.Exec(`
+		INSERT INTO posts (thread_id, author, content, created, number, flair) 
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		threadID, author, content, now, number.String(), flair)
+	if err != nil {
+		return nil, err
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	return &Post{
+		ID:      int(id),
+		Author:  author,
+		Content: content,
+		Created: now,
+		Number:  number,
+		Flair:   flair,
+	}, nil
+}
+
+// generateUniqueNumberAndFlair generates a unique random large number and assigns a flair based on the number of preceding zeroes.
+func generateUniqueNumberAndFlair() (*big.Int, string) {
+	number, _ := rand.Int(rand.Reader, big.NewInt(1e10))
+	numberStr := fmt.Sprintf("%d", number)
+
+	zeroCount := 0
+	for _, char := range numberStr {
+		if char == '0' {
+			zeroCount++
+		} else {
+			break
+		}
+	}
+
+	var flair string
+	switch zeroCount {
+	case 1:
+		flair = "uno"
+	case 2:
+		flair = "dubs"
+	case 3:
+		flair = "trips"
+	case 4:
+		flair = "quads"
+	case 5:
+		flair = "pents"
+	default:
+		flair = "default"
+	}
+
+	return number, flair
+}
+
+// getPostsByThreadID retrieves all posts for a specific thread.
+func getPostsByThreadID(db *sql.DB, threadID int) ([]*Post, error) {
+	rows, err := db.Query(`
+		SELECT id, author, content, created, number, flair
+		FROM posts
+		WHERE thread_id = ?
+		ORDER BY created ASC`, threadID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []*Post
+	for rows.Next() {
+		var p Post
+		var numberStr string
+		if err := rows.Scan(&p.ID, &p.Author, &p.Content, &p.Created, &numberStr, &p.Flair); err != nil {
+			return nil, err
+		}
+		p.Number = new(big.Int)
+		p.Number.SetString(numberStr, 10)
+		posts = append(posts, &p)
+	}
+	return posts, nil
+}
+
+// deleteBoardByID deletes a board and its associated threads and posts from the database.
+func deleteBoardByID(db *sql.DB, boardID int) error {
+	_, err := db.Exec(`DELETE FROM boards WHERE id = ?`, boardID)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`DELETE FROM threads WHERE board_id = ?`, boardID)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`DELETE FROM posts WHERE thread_id IN (SELECT id FROM threads WHERE board_id = ?)`, boardID)
+	return err
+}
+
+func hashPassword(password string) (string, error) {
+	salt := make([]byte, 16)
+	if _, err := rand.Read(salt); err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(append(salt, []byte(password)...))
+	return base64.RawURLEncoding.EncodeToString(salt) + ":" + base64.RawURLEncoding.EncodeToString(sum[:]), nil
+}
+
+func verifyPassword(password, stored string) bool {
+	parts := strings.SplitN(stored, ":", 2)
+	if len(parts) != 2 {
+		return false
+	}
+	salt, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return false
+	}
+	hash, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return false
+	}
+	sum := sha256.Sum256(append(salt, []byte(password)...))
+	return hmac.Equal(hash, sum[:])
+}
