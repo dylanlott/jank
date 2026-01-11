@@ -27,17 +27,10 @@
     </style>
 </head>
 <body>
-    <header>
-        <h1>/jank/signup/</h1>
-    </header>
+    {{template "site_header" "/jank/signup/"}}
 
     <div class="container">
-        <div class="auth-bar">
-            <a href="/">Home</a> ·
-            <a href="/user">Profiles</a> ·
-            <a href="/login?next={{.CurrentPath | urlquery}}">Log in</a> ·
-            <a href="/signup?next={{.CurrentPath | urlquery}}">Sign up</a>
-        </div>
+        {{template "auth_bar" .}}
         <div class="signup-form">
             <h2>Create an account</h2>
             {{if .Error}}
@@ -55,10 +48,7 @@
             </form>
         </div>
 
-        <footer>
-            <p><a href="{{if .Next}}{{.Next}}{{else}}/{{end}}">← Back</a></p>
-            <p>Already have an account? <a href="/login{{if .Next}}?next={{.Next | urlquery}}{{end}}">Log in</a></p>
-        </footer>
+        {{template "footer_signup" .}}
     </div>
 </body>
 </html>

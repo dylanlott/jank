@@ -87,21 +87,10 @@
     </style>
 </head>
 <body>
-    <header>
-        <h1>{{.Thread.Title}}</h1>
-    </header>
+    {{template "site_header" .Thread.Title}}
 
     <div class="container">
-        <div class="auth-bar">
-            <a href="/">Home</a> ·
-            <a href="/user">Profiles</a> ·
-            {{if .IsAuthenticated}}
-                User: <a href="/profile">{{.Username}}</a> · <a href="/logout?next={{.CurrentPath | urlquery}}">Log out</a>
-            {{else}}
-                <a href="/login?next={{.CurrentPath | urlquery}}">Log in</a> ·
-                <a href="/signup?next={{.CurrentPath | urlquery}}">Sign up</a>
-            {{end}}
-        </div>
+        {{template "auth_bar" .}}
         <div class="thread-title">{{.Thread.Title}} (Thread #{{.Thread.ID}})</div>
         <div class="thread-meta">
             Created on: {{.Thread.Created.Format "Jan 2, 2006 at 3:04pm"}}
@@ -149,9 +138,7 @@
             <p><a href="/login?next={{.CurrentPath | urlquery}}">Log in</a> or <a href="/signup?next={{.CurrentPath | urlquery}}">sign up</a> to post.</p>
         {{end}}
 
-        <footer>
-            <p><a href="/view/board/{{.BoardID}}">← Back to Board</a></p>
-        </footer>
+        {{template "footer_board" .}}
     </div>
     <script>
         document.addEventListener("DOMContentLoaded", function() {

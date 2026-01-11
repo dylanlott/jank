@@ -27,21 +27,10 @@
     </style>
 </head>
 <body>
-    <header>
-        <h1>/jank/profiles/</h1>
-    </header>
+    {{template "site_header" "/jank/profiles/"}}
 
     <div class="container">
-        <div class="auth-bar">
-            <a href="/">Home</a> ·
-            <a href="/user">Profiles</a> ·
-            {{if .IsAuthenticated}}
-                User: <a href="/profile">{{.Username}}</a> · <a href="/logout?next={{.CurrentPath | urlquery}}">Log out</a>
-            {{else}}
-                <a href="/login?next={{.CurrentPath | urlquery}}">Log in</a> ·
-                <a href="/signup?next={{.CurrentPath | urlquery}}">Sign up</a>
-            {{end}}
-        </div>
+        {{template "auth_bar" .}}
 
         <div class="lookup-form">
             <h2>Find a user</h2>
@@ -58,9 +47,7 @@
             {{end}}
         </div>
 
-        <footer>
-            <p><a href="/">Back to Home</a></p>
-        </footer>
+        {{template "footer_home" .}}
     </div>
 </body>
 </html>

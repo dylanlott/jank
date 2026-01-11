@@ -15,6 +15,7 @@ var (
 	templates *template.Template
 	log       = logrus.New()
 	auth      AuthConfig
+	assetsFS  embed.FS
 )
 
 func init() {
@@ -39,6 +40,7 @@ func Run(dbPath string, templatesFS embed.FS) error {
 		log.Printf("Failed to seed data: %v", err)
 	}
 
+	assetsFS = templatesFS
 	templates, err = parseTemplates(templatesFS)
 	if err != nil {
 		return err

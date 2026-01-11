@@ -27,17 +27,10 @@
     </style>
 </head>
 <body>
-    <header>
-        <h1>/jank/login/</h1>
-    </header>
+    {{template "site_header" "/jank/login/"}}
 
     <div class="container">
-        <div class="auth-bar">
-            <a href="/">Home</a> ·
-            <a href="/user">Profiles</a> ·
-            <a href="/login?next={{.CurrentPath | urlquery}}">Log in</a> ·
-            <a href="/signup?next={{.CurrentPath | urlquery}}">Sign up</a>
-        </div>
+        {{template "auth_bar" .}}
         <div class="login-form">
             <h2>Sign in to post</h2>
             {{if .Error}}
@@ -55,10 +48,7 @@
             </form>
         </div>
 
-        <footer>
-            <p><a href="{{if .Next}}{{.Next}}{{else}}/{{end}}">← Back</a></p>
-            <p>Need an account? <a href="/signup{{if .Next}}?next={{.Next | urlquery}}{{end}}">Sign up</a></p>
-        </footer>
+        {{template "footer_login" .}}
     </div>
 </body>
 </html>

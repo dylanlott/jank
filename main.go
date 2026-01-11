@@ -7,11 +7,11 @@ import (
 	"jank/app"
 )
 
-//go:embed templates/*.html
-var templatesFS embed.FS
+//go:embed templates/*.html static/*
+var contentFS embed.FS
 
 func main() {
-	if err := app.Run("./sqlite.db", templatesFS); err != nil {
+	if err := app.Run("./sqlite.db", contentFS); err != nil {
 		log.Fatalf("Server error: %v", err)
 	}
 }

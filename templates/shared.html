@@ -1,0 +1,176 @@
+{{define "shared_styles"}}
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #343a40;
+            color: #fff;
+            padding: 15px 20px;
+            text-align: center;
+        }
+        .container {
+            width: 90%;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .auth-bar {
+            text-align: right;
+            margin-bottom: 15px;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #495057;
+        }
+        input[type="text"],
+        input[type="password"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1em;
+        }
+        .muted {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .error {
+            color: #d9534f;
+            margin-bottom: 15px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #6c757d;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .mtg-card {
+            font-weight: 600;
+            color: #d9534f;
+        }
+        .profile-header {
+            margin-bottom: 20px;
+        }
+        .profile-header h2 {
+            margin: 0 0 5px 0;
+            color: #343a40;
+        }
+        .meta {
+            color: #6c757d;
+        }
+        .section {
+            margin-top: 25px;
+        }
+        .section h3 {
+            margin-bottom: 10px;
+            color: #343a40;
+        }
+        .list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .list-item {
+            border-bottom: 1px solid #ddd;
+            padding: 12px 0;
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .item-title {
+            font-weight: bold;
+            color: #343a40;
+        }
+        .item-meta {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-top: 4px;
+        }
+        .item-content {
+            margin-top: 8px;
+            white-space: pre-wrap;
+        }
+{{end}}
+
+{{define "shared_head"}}
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter&display=swap" />
+{{end}}
+
+{{define "site_header"}}
+    <header>
+        <h1>{{.}}</h1>
+    </header>
+{{end}}
+
+{{define "auth_bar"}}
+        <div class="auth-bar">
+            <a href="/">Home</a> ·
+            <a href="/user">Profiles</a> ·
+            {{if .IsAuthenticated}}
+                User: <a href="/profile">{{.Username}}</a> · <a href="/logout?next={{.CurrentPath | urlquery}}">Log out</a>
+            {{else}}
+                <a href="/login?next={{.CurrentPath | urlquery}}">Log in</a> ·
+                <a href="/signup?next={{.CurrentPath | urlquery}}">Sign up</a>
+            {{end}}
+        </div>
+{{end}}
+
+{{define "footer_brand"}}
+        <footer>
+            <p>/jank/</p>
+        </footer>
+{{end}}
+
+{{define "footer_home"}}
+        <footer>
+            <p><a href="/">Back to Home</a></p>
+        </footer>
+{{end}}
+
+{{define "footer_board"}}
+        <footer>
+            <p><a href="/view/board/{{.BoardID}}">← Back to Board</a></p>
+        </footer>
+{{end}}
+
+{{define "footer_profiles"}}
+        <footer>
+            <p><a href="/user">Back to Profiles</a></p>
+        </footer>
+{{end}}
+
+{{define "footer_login"}}
+        <footer>
+            <p><a href="{{if .Next}}{{.Next}}{{else}}/{{end}}">← Back</a></p>
+            <p>Need an account? <a href="/signup{{if .Next}}?next={{.Next | urlquery}}{{end}}">Sign up</a></p>
+        </footer>
+{{end}}
+
+{{define "footer_signup"}}
+        <footer>
+            <p><a href="{{if .Next}}{{.Next}}{{else}}/{{end}}">← Back</a></p>
+            <p>Already have an account? <a href="/login{{if .Next}}?next={{.Next | urlquery}}{{end}}">Log in</a></p>
+        </footer>
+{{end}}

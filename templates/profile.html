@@ -11,14 +11,10 @@
     </style>
 </head>
 <body>
-    <header>
-        <h1>/jank/profile/</h1>
-    </header>
+    {{template "site_header" "/jank/profile/"}}
 
     <div class="container">
-        <div class="auth-bar">
-            <a href="/">Home</a> · <a href="/user">Profiles</a> · User: <a href="/profile">{{.Username}}</a> · <a href="/logout?next={{.CurrentPath | urlquery}}">Log out</a>
-        </div>
+        {{template "auth_bar" .}}
 
         <div class="profile-header">
             <h2>{{.User.Username}}</h2>
@@ -60,9 +56,7 @@
             {{end}}
         </div>
 
-        <footer>
-            <p><a href="/">Back to Home</a></p>
-        </footer>
+        {{template "footer_home" .}}
     </div>
 </body>
 </html>
