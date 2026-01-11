@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"embed"
+	"fmt"
 	"html/template"
 	"os"
 	"strings"
@@ -19,8 +20,44 @@ type AuthConfig struct {
 
 const authCookieName = "jank_auth"
 
-func openDatabase(path string) (*sql.DB, error) {
-	return sql.Open("sqlite3", path)
+func openDatabase() (*sql.DB, error) {
+	driver := strings.ToLower(strings.TrimSpace(os.Getenv("JANK_DB_DRIVER")))
+	dsn := strings.TrimSpace(os.Getenv("JANK_DB_DSN"))
+	if dsn == "" {
+		dsn = strings.TrimSpace(os.Getenv("DATABASE_URL"))
+	}
+
+	if driver == "" {
+		driver = "postgres"
+	}
+
+	switch driver {
+	case "postgres", "postgresql", "pgx":
+		driver = "pgx"
+		if dsn == "" {
+			return nil, fmt.Errorf("postgres selected; set JANK_DB_DSN or DATABASE_URL")
+		}
+	case "sqlite", "sqlite3":
+		driver = "sqlite3"
+		if dsn == "" {
+			dsn = "./sqlite.db"
+			log.Warn("JANK_DB_DSN not set; defaulting to ./sqlite.db")
+		}
+	default:
+		return nil, fmt.Errorf("unsupported JANK_DB_DRIVER %q", driver)
+	}
+
+	db, err := sql.Open(driver, dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	if driver == "sqlite3" {
+		_, _ = db.Exec("PRAGMA foreign_keys = ON")
+	}
+
+	dbDriver = driver
+	return db, nil
 }
 
 func parseTemplates(fs embed.FS) (*template.Template, error) {

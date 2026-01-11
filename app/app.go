@@ -6,12 +6,14 @@ import (
 	"html/template"
 	"net/http"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/sirupsen/logrus"
 )
 
 var (
 	db        *sql.DB
+	dbDriver  string
 	templates *template.Template
 	log       = logrus.New()
 	auth      AuthConfig
@@ -23,10 +25,10 @@ func init() {
 	log.SetLevel(logrus.InfoLevel)
 }
 
-func Run(dbPath string, templatesFS embed.FS) error {
+func Run(templatesFS embed.FS) error {
 	var err error
 
-	db, err = openDatabase(dbPath)
+	db, err = openDatabase()
 	if err != nil {
 		return err
 	}

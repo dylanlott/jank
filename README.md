@@ -9,13 +9,22 @@
 /___/                    
 ```
 
-`jank` uses Go with SQLite to store data. It is intentionally simple with all front-end assets statically embedded in the Go binary at build time.
+`jank` uses Go with PostgreSQL by default (SQLite is optional) to store data. It is intentionally simple with all front-end assets statically embedded in the Go binary at build time.
 
 ## Development
 
 To run the server:
 
 ```sh
+export JANK_DB_DSN="postgres://user:pass@localhost:5432/jank?sslmode=disable"
+go run main.go
+```
+
+To use SQLite instead:
+
+```sh
+export JANK_DB_DRIVER="sqlite"
+export JANK_DB_DSN="./sqlite.db"
 go run main.go
 ```
 
