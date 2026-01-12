@@ -53,6 +53,119 @@
             font-size: 0.9em;
             color: #ff6347;
         }
+        .card-trees {
+            margin: 20px 0 10px;
+        }
+        .card-tree {
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            background: #fafbfc;
+        }
+        .card-tree-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+        .card-tree-title {
+            font-weight: 600;
+            color: #343a40;
+        }
+        .card-tree-badge {
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            background: #d1ecf1;
+            color: #0c5460;
+            border-radius: 10px;
+            padding: 2px 8px;
+        }
+        .card-tree-desc {
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+        .card-tree-nodes {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        .card-tree-node {
+            position: relative;
+            margin-bottom: 10px;
+            padding-left: calc(var(--tree-depth) * 18px + 24px);
+        }
+        .card-tree-node::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: calc(var(--tree-depth) * 18px);
+            background-image: repeating-linear-gradient(
+                to right,
+                transparent 0,
+                transparent 14px,
+                #cfd4da 14px,
+                #cfd4da 15px
+            );
+        }
+        .card-tree-connector {
+            position: absolute;
+            left: calc(var(--tree-depth) * 18px);
+            top: 12px;
+            width: 16px;
+            height: 12px;
+            pointer-events: none;
+        }
+        .card-tree-connector::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 5px;
+            width: 12px;
+            border-top: 2px solid #cfd4da;
+        }
+        .card-tree-connector::after {
+            content: "";
+            position: absolute;
+            left: 10px;
+            top: 2px;
+            width: 0;
+            height: 0;
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+            border-left: 6px solid #cfd4da;
+        }
+        .card-tree-card {
+            font-weight: 600;
+        }
+        .card-tree-annotations {
+            list-style-type: none;
+            padding-left: 0;
+            margin: 4px 0 0 0;
+        }
+        .card-tree-annotation {
+            color: #495057;
+            font-size: 0.95em;
+            margin-top: 2px;
+        }
+        .card-tree-annotation-kind {
+            text-transform: uppercase;
+            font-size: 0.7em;
+            letter-spacing: 0.04em;
+            color: #6c757d;
+            margin-right: 6px;
+        }
+        .card-tree-annotation-label {
+            font-weight: 600;
+            margin-right: 6px;
+        }
+        .card-tree-annotation-tags {
+            color: #6c757d;
+            margin-right: 6px;
+        }
         .new-post-form {
             margin-top: 30px;
         }
@@ -106,6 +219,52 @@
                             <div class="post-date">{{.Created.Format "Jan 2, 2006 at 3:04pm"}}</div>
                         </div>
                         <div class="post-content">{{.Content}}</div>
+                        {{if .Trees}}
+                            <div class="card-trees">
+                                <!-- <h3>Card Trees</h3> -->
+                                {{range .Trees}}
+                                    <div class="card-tree">
+                                        <div class="card-tree-header">
+                                            <div class="card-tree-title">{{.Title}}</div>
+                                            {{if .IsPrimary}}
+                                                <span class="card-tree-badge">Primary</span>
+                                            {{end}}
+                                        </div>
+                                        {{if .Description}}
+                                            <div class="card-tree-desc">{{.Description}}</div>
+                                        {{end}}
+                                        {{if .Nodes}}
+                                            <ul class="card-tree-nodes">
+                                                {{range .Nodes}}
+                                                    <li class="card-tree-node" style="--tree-depth: {{.Depth}};">
+                                                        <span class="card-tree-connector" aria-hidden="true"></span>
+                                                        <div class="card-tree-card">[[ {{.CardName}} ]]</div>
+                                                        {{if .Annotations}}
+                                                            <ul class="card-tree-annotations">
+                                                                {{range .Annotations}}
+                                                                    <li class="card-tree-annotation">
+                                                                        <span class="card-tree-annotation-kind">{{.Kind}}</span>
+                                                                        {{if .Label}}
+                                                                            <span class="card-tree-annotation-label">{{.Label}}</span>
+                                                                        {{end}}
+                                                                        {{if .Tags}}
+                                                                            <span class="card-tree-annotation-tags">{{.Tags}}</span>
+                                                                        {{end}}
+                                                                        <span class="card-tree-annotation-body">{{.Body}}</span>
+                                                                    </li>
+                                                                {{end}}
+                                                            </ul>
+                                                        {{end}}
+                                                    </li>
+                                                {{end}}
+                                            </ul>
+                                        {{else}}
+                                            <div class="muted">No cards yet.</div>
+                                        {{end}}
+                                    </div>
+                                {{end}}
+                            </div>
+                        {{end}}
                         <div class="post-number">post ID: {{.Number}}</div>
                         <div class="post-flair">flair: {{.Flair}}</div>
                     </li>
@@ -126,9 +285,22 @@
             <div class="new-post-form">
                 <h2 id="reply">Reply to this Thread</h2>
                 <p class="muted">Posting as {{.Username}}</p>
-                <form method="POST" action="/view/thread/{{.Thread.ID}}/post">
+                <form id="reply-form" method="POST" action="/view/thread/{{.Thread.ID}}/post">
                     <label for="content">Your Post:</label>
                     <textarea id="content" name="content" rows="5" placeholder="Enter your message here..." required></textarea>
+
+                    <label>
+                        <input type="checkbox" id="tree-toggle" />
+                        Add card tree(s) to this reply
+                    </label>
+                    <div id="tree-builder" class="tree-builder tree-builder-hidden">
+                        <p class="muted">Tree title and card name are required.</p>
+                        <div class="tree-builder-actions">
+                            <button type="button" class="tree-builder-add-tree">Add tree</button>
+                        </div>
+                        <div class="tree-builder-trees"></div>
+                    </div>
+                    <input type="hidden" id="tree_payload" name="tree_payload" value="" />
 
                     <button type="submit">Post Reply</button>
                 </form>
@@ -145,6 +317,7 @@
             const postContents = document.querySelectorAll('.post-content');
             const threadTitle = document.querySelector('.thread-title');
             const threadMeta = document.querySelector('.thread-meta');
+            const treeBlocks = document.querySelectorAll('.card-tree');
             const cardNamePattern = /\[\[([^\]]+)\]\]/g;
 
             postContents.forEach(content => {
@@ -158,6 +331,222 @@
             if (threadMeta) {
                 threadMeta.innerHTML = threadMeta.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
             }
+
+            treeBlocks.forEach(tree => {
+                tree.innerHTML = tree.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
+            });
+
+            function initTreeBuilder(options) {
+                const form = document.getElementById(options.formId);
+                const toggle = document.getElementById(options.toggleId);
+                const builder = document.getElementById(options.builderId);
+                const payloadInput = document.getElementById(options.payloadId);
+                if (!form || !toggle || !builder || !payloadInput) {
+                    return;
+                }
+                const treesContainer = builder.querySelector(".tree-builder-trees");
+                const addTreeButton = builder.querySelector(".tree-builder-add-tree");
+                let treeCount = 0;
+
+                function updateParentOptions(tree) {
+                    const nodes = Array.from(tree.querySelectorAll(".tree-node"));
+                    const options = nodes.map(node => {
+                        const id = node.dataset.nodeId;
+                        const label = node.querySelector(".tree-node-card").value.trim() || `Node ${id}`;
+                        return { id, label };
+                    });
+                    nodes.forEach(node => {
+                        const select = node.querySelector(".tree-node-parent");
+                        const current = select.value;
+                        select.innerHTML = '<option value="">None (root)</option>';
+                        options.forEach(option => {
+                            if (option.id === node.dataset.nodeId) {
+                                return;
+                            }
+                            const opt = document.createElement("option");
+                            opt.value = option.id;
+                            opt.textContent = option.label;
+                            select.appendChild(opt);
+                        });
+                        if (current) {
+                            select.value = current;
+                        }
+                    });
+                }
+
+                function addAnnotation(node) {
+                    const annotations = node.querySelector(".tree-node-annotations");
+                    const annotation = document.createElement("div");
+                    annotation.className = "tree-node-annotation";
+                    annotation.innerHTML = `
+                        <label>Kind</label>
+                        <input type="text" class="tree-annotation-kind" value="note" />
+                        <label>Label</label>
+                        <input type="text" class="tree-annotation-label" />
+                        <label>Tags</label>
+                        <input type="text" class="tree-annotation-tags" placeholder="comma,separated" />
+                        <label>Body</label>
+                        <textarea class="tree-annotation-body" rows="2"></textarea>
+                        <div class="tree-builder-actions">
+                            <button type="button" class="tree-builder-remove-annotation">Remove annotation</button>
+                        </div>
+                    `;
+                    annotation.querySelector(".tree-builder-remove-annotation").addEventListener("click", function() {
+                        annotation.remove();
+                    });
+                    annotations.appendChild(annotation);
+                }
+
+                function addNode(tree) {
+                    const nodesContainer = tree.querySelector(".tree-nodes");
+                    const nextIndex = Number(tree.dataset.nodeCounter || "0") + 1;
+                    tree.dataset.nodeCounter = String(nextIndex);
+                    const nodeId = String(nextIndex);
+                    const node = document.createElement("div");
+                    node.className = "tree-node";
+                    node.dataset.nodeId = nodeId;
+                    node.innerHTML = `
+                        <div class="tree-node-header">
+                            <div class="tree-node-title">Node ${nodeId}</div>
+                            <button type="button" class="tree-builder-remove-node">Remove node</button>
+                        </div>
+                        <label>Card name</label>
+                        <input type="text" class="tree-node-card" />
+                        <label>Parent node</label>
+                        <select class="tree-node-parent"></select>
+                        <label>Position</label>
+                        <input type="number" class="tree-node-position" value="0" min="0" />
+                        <div class="tree-builder-actions">
+                            <button type="button" class="tree-builder-add-annotation">Add annotation</button>
+                        </div>
+                        <div class="tree-node-annotations"></div>
+                    `;
+                    node.querySelector(".tree-builder-remove-node").addEventListener("click", function() {
+                        node.remove();
+                        updateParentOptions(tree);
+                    });
+                    node.querySelector(".tree-node-card").addEventListener("input", function() {
+                        updateParentOptions(tree);
+                    });
+                    node.querySelector(".tree-builder-add-annotation").addEventListener("click", function() {
+                        addAnnotation(node);
+                    });
+                    nodesContainer.appendChild(node);
+                    updateParentOptions(tree);
+                }
+
+                function addTree() {
+                    treeCount += 1;
+                    const tree = document.createElement("div");
+                    tree.className = "tree-block";
+                    tree.dataset.treeId = String(treeCount);
+                    tree.innerHTML = `
+                        <div class="tree-block-header">
+                            <div class="tree-block-title">Tree ${treeCount}</div>
+                            <button type="button" class="tree-builder-remove-tree">Remove tree</button>
+                        </div>
+                        <label>Title</label>
+                        <input type="text" class="tree-title" />
+                        <label>Description</label>
+                        <textarea class="tree-description" rows="2"></textarea>
+                        <label>
+                            <input type="checkbox" class="tree-primary" />
+                            Primary tree
+                        </label>
+                        <div class="tree-builder-actions">
+                            <button type="button" class="tree-builder-add-node">Add node</button>
+                        </div>
+                        <div class="tree-nodes"></div>
+                    `;
+                    tree.querySelector(".tree-builder-remove-tree").addEventListener("click", function() {
+                        tree.remove();
+                    });
+                    tree.querySelector(".tree-builder-add-node").addEventListener("click", function() {
+                        addNode(tree);
+                    });
+                    treesContainer.appendChild(tree);
+                }
+
+                function buildPayload() {
+                    const trees = [];
+                    const treeBlocks = Array.from(treesContainer.querySelectorAll(".tree-block"));
+                    for (const tree of treeBlocks) {
+                        const title = tree.querySelector(".tree-title").value.trim();
+                        if (!title) {
+                            return { error: "Each tree needs a title." };
+                        }
+                        const description = tree.querySelector(".tree-description").value.trim();
+                        const isPrimary = tree.querySelector(".tree-primary").checked;
+                        const nodes = [];
+                        const nodeBlocks = Array.from(tree.querySelectorAll(".tree-node"));
+                        for (const node of nodeBlocks) {
+                            const cardName = node.querySelector(".tree-node-card").value.trim();
+                            if (!cardName) {
+                                return { error: "Each node needs a card name." };
+                            }
+                            const parentValue = node.querySelector(".tree-node-parent").value;
+                            const positionValue = node.querySelector(".tree-node-position").value;
+                            const position = positionValue === "" ? 0 : Number(positionValue);
+                            const annotations = [];
+                            const annotationBlocks = Array.from(node.querySelectorAll(".tree-node-annotation"));
+                            for (const annotation of annotationBlocks) {
+                                const body = annotation.querySelector(".tree-annotation-body").value.trim();
+                                if (!body) {
+                                    continue;
+                                }
+                                annotations.push({
+                                    kind: annotation.querySelector(".tree-annotation-kind").value.trim(),
+                                    label: annotation.querySelector(".tree-annotation-label").value.trim(),
+                                    tags: annotation.querySelector(".tree-annotation-tags").value.trim(),
+                                    body: body
+                                });
+                            }
+                            nodes.push({
+                                temp_id: node.dataset.nodeId,
+                                parent_temp_id: parentValue ? parentValue : null,
+                                card_name: cardName,
+                                position: Number.isNaN(position) ? 0 : position,
+                                annotations: annotations
+                            });
+                        }
+                        trees.push({
+                            title: title,
+                            description: description,
+                            is_primary: isPrimary,
+                            nodes: nodes
+                        });
+                    }
+                    return { data: { trees: trees } };
+                }
+
+                toggle.addEventListener("change", function() {
+                    builder.classList.toggle("tree-builder-hidden", !toggle.checked);
+                    if (!toggle.checked) {
+                        payloadInput.value = "";
+                    }
+                });
+                addTreeButton.addEventListener("click", addTree);
+                form.addEventListener("submit", function(event) {
+                    if (!toggle.checked) {
+                        payloadInput.value = "";
+                        return;
+                    }
+                    const payloadResult = buildPayload();
+                    if (payloadResult.error) {
+                        event.preventDefault();
+                        alert(payloadResult.error);
+                        return;
+                    }
+                    payloadInput.value = JSON.stringify(payloadResult.data);
+                });
+            }
+
+            initTreeBuilder({
+                formId: "reply-form",
+                toggleId: "tree-toggle",
+                builderId: "tree-builder",
+                payloadId: "tree_payload"
+            });
         });
     </script>
 </body>

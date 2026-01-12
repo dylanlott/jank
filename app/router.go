@@ -25,8 +25,15 @@ func buildRouter() *mux.Router {
 	// REST API endpoints
 	r.HandleFunc("/boards", boardsHandler).Methods("GET", "POST")
 	r.HandleFunc("/boards/{boardID:[0-9]+}", boardHandler).Methods("GET")
+	r.HandleFunc("/boards/{boardID:[0-9]+}/trees", boardTreesHandler).Methods("GET", "POST")
 	r.HandleFunc("/threads/{boardID:[0-9]+}", threadsHandler).Methods("GET", "POST")
+	r.HandleFunc("/threads/{threadID:[0-9]+}/trees", threadTreesHandler).Methods("GET", "POST")
 	r.HandleFunc("/posts/{boardID:[0-9]+}/{threadID:[0-9]+}", postsHandler).Methods("POST")
+	r.HandleFunc("/trees/{treeID:[0-9]+}", treeHandler).Methods("GET")
+	r.HandleFunc("/trees/{treeID:[0-9]+}/nodes", treeNodesHandler).Methods("POST")
+	r.HandleFunc("/trees/{treeID:[0-9]+}/nodes/{nodeID:[0-9]+}", treeNodeHandler).Methods("PATCH", "DELETE")
+	r.HandleFunc("/trees/{treeID:[0-9]+}/nodes/{nodeID:[0-9]+}/annotations", treeNodeAnnotationsHandler).Methods("POST")
+	r.HandleFunc("/trees/{treeID:[0-9]+}/nodes/{nodeID:[0-9]+}/annotations/{annotationID:[0-9]+}", treeNodeAnnotationHandler).Methods("DELETE")
 	r.HandleFunc("/delete/board/{boardID:[0-9]+}", deleteBoardHandler).Methods("DELETE")
 
 	return r

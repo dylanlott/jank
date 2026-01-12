@@ -104,6 +104,7 @@
             const threadTitles = document.querySelectorAll('.thread-title a');
             const boardTitle = document.querySelector('.board-title');
             const boardMeta = document.querySelector('.board-meta');
+            const treeBlocks = document.querySelectorAll('.card-tree');
             const cardNamePattern = /\[\[([^\]]+)\]\]/g;
 
             threadTitles.forEach(title => {
@@ -117,6 +118,7 @@
             if (boardMeta) {
                 boardMeta.innerHTML = boardMeta.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
             }
+
         });
     </script>
 </body>

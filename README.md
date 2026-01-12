@@ -102,9 +102,78 @@ curl -X POST -H "Content-Type: application/json" -d '{"title":"Dimir control is 
 curl -X POST -H "Content-Type: application/json" -d '{"author":"anonymous", "content":"bofades nutz"}' http://localhost:8080/posts/1/1
 ```
 
+### Create a card tree for a board
+
+```sh
+curl -X POST -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"title":"Azorius Control Core","description":"Primary shells","is_primary":true}' \
+  http://localhost:8080/boards/1/trees
+```
+
+### List card trees for a board
+
+```sh
+curl http://localhost:8080/boards/1/trees
+```
+
+### Create a card tree for a thread
+
+```sh
+curl -X POST -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"title":"Mirror Sideboard Map","description":"Matchup plan","is_primary":false}' \
+  http://localhost:8080/threads/2/trees
+```
+
+### Fetch a tree with nodes and annotations
+
+```sh
+curl http://localhost:8080/trees/1
+```
+
+### Add a node to a tree
+
+```sh
+curl -X POST -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"card_name":"Teferi, Hero of Dominaria","parent_id":null,"position":0}' \
+  http://localhost:8080/trees/1/nodes
+```
+
+### Update a node in a tree
+
+```sh
+curl -X PATCH -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"card_name":"Teferi, Time Raveler","parent_id":null,"position":1}' \
+  http://localhost:8080/trees/1/nodes/1
+```
+
+### Delete a node in a tree
+
+```sh
+curl -X DELETE -H "Authorization: Bearer <token>" http://localhost:8080/trees/1/nodes/1
+```
+
+### Add an annotation to a node
+
+```sh
+curl -X POST -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"kind":"note","body":"Pairs with [[Narset, Parter of Veils]]","source_post_id":null}' \
+  http://localhost:8080/trees/1/nodes/1/annotations
+```
+
+### Delete an annotation
+
+```sh
+curl -X DELETE -H "Authorization: Bearer <token>" http://localhost:8080/trees/1/nodes/1/annotations/1
+```
+
 ## Ideas
 
-- Ability to represent annotated tress of cards
+- Ability to represent annotated trees of cards
 - Decklist handling
 - Player profile integration with vedh.xyz
 - Replay and game linking support for vedh games

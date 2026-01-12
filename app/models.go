@@ -32,6 +32,48 @@ type Thread struct {
 	Created time.Time `json:"created"`
 }
 
+// CardTree represents a scoped tree of cards with annotations.
+type CardTree struct {
+	ID          int             `json:"id"`
+	ScopeType   string          `json:"scope_type"`
+	ScopeID     int             `json:"scope_id"`
+	Title       string          `json:"title"`
+	Description string          `json:"description"`
+	CreatedBy   string          `json:"created_by"`
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at"`
+	IsPrimary   bool            `json:"is_primary"`
+	Nodes       []*CardTreeNode `json:"nodes,omitempty"`
+}
+
+// CardTreeNode represents a card in a tree with optional annotations.
+type CardTreeNode struct {
+	ID          int                   `json:"id"`
+	TreeID      int                   `json:"tree_id"`
+	ParentID    *int                  `json:"parent_id,omitempty"`
+	CardName    string                `json:"card_name"`
+	Position    int                   `json:"position"`
+	CreatedBy   string                `json:"created_by"`
+	CreatedAt   time.Time             `json:"created_at"`
+	UpdatedAt   time.Time             `json:"updated_at"`
+	Depth       int                   `json:"depth,omitempty"`
+	Indent      int                   `json:"indent,omitempty"`
+	Annotations []*CardTreeAnnotation `json:"annotations,omitempty"`
+}
+
+// CardTreeAnnotation represents a note attached to a tree node.
+type CardTreeAnnotation struct {
+	ID           int       `json:"id"`
+	NodeID       int       `json:"node_id"`
+	Kind         string    `json:"kind"`
+	Body         string    `json:"body"`
+	Label        string    `json:"label"`
+	Tags         string    `json:"tags"`
+	SourcePostID *int      `json:"source_post_id,omitempty"`
+	CreatedBy    string    `json:"created_by"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
 // Post represents an individual post in a thread.
 type Post struct {
 	ID      int       `json:"id"`
@@ -40,6 +82,7 @@ type Post struct {
 	Created time.Time `json:"created"`
 	Number  *big.Int  `json:"number"`
 	Flair   string    `json:"flair"`
+	Trees   []*CardTree `json:"trees,omitempty"`
 }
 
 // ------------------- Template Data -------------------

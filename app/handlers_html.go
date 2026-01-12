@@ -1,6 +1,8 @@
 package app
 
 import (
+	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -100,6 +102,11 @@ func serveNewThread(w http.ResponseWriter, r *http.Request) {
 			renderErrorPage(w, r, http.StatusBadRequest, "Invalid Form", "We couldn't read that form submission.", fmt.Sprintf("/view/board/%d", boardID))
 			return
 		}
+		treePayload, err := parseCardTreePayload(r.FormValue("tree_payload"))
+		if err != nil {
+			renderErrorPage(w, r, http.StatusBadRequest, "Invalid Tree Data", "We couldn't read your card tree details.", fmt.Sprintf("/view/board/newthread/%d", boardID))
+			return
+		}
 		title := strings.TrimSpace(r.FormValue("title"))
 		if title == "" {
 			renderErrorPage(w, r, http.StatusBadRequest, "Missing Title", "Thread title cannot be empty.", fmt.Sprintf("/view/board/newthread/%d", boardID))
@@ -117,9 +124,15 @@ func serveNewThread(w http.ResponseWriter, r *http.Request) {
 			renderErrorPage(w, r, http.StatusInternalServerError, "Create Thread Failed", "We couldn't create that thread. Please try again.", fmt.Sprintf("/view/board/%d", boardID))
 			return
 		}
-		if _, err := createPost(db, thread.ID, username, content); err != nil {
+		post, err := createPost(db, thread.ID, username, content)
+		if err != nil {
 			log.Errorf("Failed to create starter post: %v", err)
 			renderErrorPage(w, r, http.StatusInternalServerError, "Post Failed", "We couldn't save your post. Please try again.", fmt.Sprintf("/view/board/%d", boardID))
+			return
+		}
+		if err := applyCardTreePayload(db, "post", post.ID, username, treePayload); err != nil {
+			log.Errorf("Failed to create card tree: %v", err)
+			renderErrorPage(w, r, http.StatusBadRequest, "Tree Create Failed", "We couldn't save your card trees. Please review and try again.", fmt.Sprintf("/view/board/newthread/%d", boardID))
 			return
 		}
 
@@ -172,6 +185,11 @@ func serveThreadView(w http.ResponseWriter, r *http.Request) {
 			renderErrorPage(w, r, http.StatusBadRequest, "Invalid Form", "We couldn't read that form submission.", fmt.Sprintf("/view/thread/%d", threadID))
 			return
 		}
+		treePayload, err := parseCardTreePayload(r.FormValue("tree_payload"))
+		if err != nil {
+			renderErrorPage(w, r, http.StatusBadRequest, "Invalid Tree Data", "We couldn't read your card tree details.", fmt.Sprintf("/view/thread/%d", threadID))
+			return
+		}
 		content := strings.TrimSpace(r.FormValue("content"))
 		if content == "" {
 			renderErrorPage(w, r, http.StatusBadRequest, "Missing Post", "Post content cannot be empty.", fmt.Sprintf("/view/thread/%d", threadID))
@@ -185,6 +203,11 @@ func serveThreadView(w http.ResponseWriter, r *http.Request) {
 			renderErrorPage(w, r, http.StatusInternalServerError, "Post Failed", "We couldn't create that reply. Please try again.", fmt.Sprintf("/view/thread/%d", threadID))
 			return
 		}
+		if err := applyCardTreePayload(db, "post", post.ID, username, treePayload); err != nil {
+			log.Errorf("Failed to create card tree: %v", err)
+			renderErrorPage(w, r, http.StatusBadRequest, "Tree Create Failed", "We couldn't save your card trees. Please review and try again.", fmt.Sprintf("/view/thread/%d", threadID))
+			return
+		}
 
 		log.Infof("Created post: ID=%d, Author=%s, ThreadID=%d", post.ID, post.Author, threadID)
 		http.Redirect(w, r, fmt.Sprintf("/view/thread/%d", threadID), http.StatusSeeOther)
@@ -192,6 +215,120 @@ func serveThreadView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	renderErrorPage(w, r, http.StatusNotFound, "Not Found", "That page does not exist.", "/")
+}
+
+type cardTreePayload struct {
+	Trees []cardTreePayloadTree `json:"trees"`
+}
+
+type cardTreePayloadTree struct {
+	Title       string                `json:"title"`
+	Description string                `json:"description"`
+	IsPrimary   bool                  `json:"is_primary"`
+	Nodes       []cardTreePayloadNode `json:"nodes"`
+}
+
+type cardTreePayloadNode struct {
+	TempID       string                      `json:"temp_id"`
+	ParentTempID *string                     `json:"parent_temp_id"`
+	CardName     string                      `json:"card_name"`
+	Position     int                         `json:"position"`
+	Annotations  []cardTreePayloadAnnotation `json:"annotations"`
+}
+
+type cardTreePayloadAnnotation struct {
+	Kind  string `json:"kind"`
+	Body  string `json:"body"`
+	Label string `json:"label"`
+	Tags  string `json:"tags"`
+}
+
+func parseCardTreePayload(raw string) (*cardTreePayload, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, nil
+	}
+	var payload cardTreePayload
+	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
+		return nil, err
+	}
+	if len(payload.Trees) == 0 {
+		return nil, nil
+	}
+	return &payload, nil
+}
+
+func applyCardTreePayload(db *sql.DB, scopeType string, scopeID int, username string, payload *cardTreePayload) error {
+	if payload == nil || len(payload.Trees) == 0 {
+		return nil
+	}
+	for _, tree := range payload.Trees {
+		title := strings.TrimSpace(tree.Title)
+		if title == "" {
+			return fmt.Errorf("tree title is required")
+		}
+		description := strings.TrimSpace(tree.Description)
+		cardTree, err := createCardTree(db, scopeType, scopeID, title, description, username, tree.IsPrimary)
+		if err != nil {
+			return err
+		}
+
+		if len(tree.Nodes) == 0 {
+			continue
+		}
+
+		idMap := make(map[string]int)
+		pending := append([]cardTreePayloadNode(nil), tree.Nodes...)
+		for len(pending) > 0 {
+			progressed := false
+			remaining := pending[:0]
+			for _, node := range pending {
+				cardName := strings.TrimSpace(node.CardName)
+				if cardName == "" {
+					return fmt.Errorf("card name is required")
+				}
+				if strings.TrimSpace(node.TempID) == "" {
+					return fmt.Errorf("node id is required")
+				}
+				var parentID *int
+				if node.ParentTempID != nil && strings.TrimSpace(*node.ParentTempID) != "" {
+					parentDBID, ok := idMap[*node.ParentTempID]
+					if !ok {
+						remaining = append(remaining, node)
+						continue
+					}
+					parentID = &parentDBID
+				}
+				createdNode, err := createCardTreeNode(db, cardTree.ID, parentID, cardName, node.Position, username)
+				if err != nil {
+					return err
+				}
+				idMap[node.TempID] = createdNode.ID
+				progressed = true
+
+				for _, annotation := range node.Annotations {
+					body := strings.TrimSpace(annotation.Body)
+					label := strings.TrimSpace(annotation.Label)
+					tags := strings.TrimSpace(annotation.Tags)
+					if body == "" {
+						continue
+					}
+					kind := strings.TrimSpace(annotation.Kind)
+					if kind == "" {
+						kind = "note"
+					}
+					if _, err := createCardTreeAnnotation(db, createdNode.ID, kind, body, label, tags, nil, username); err != nil {
+						return err
+					}
+				}
+			}
+			if !progressed && len(remaining) > 0 {
+				return fmt.Errorf("invalid tree payload")
+			}
+			pending = remaining
+		}
+	}
+	return nil
 }
 
 func serveLogin(w http.ResponseWriter, r *http.Request) {
