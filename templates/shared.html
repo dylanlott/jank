@@ -11,8 +11,36 @@
         header {
             background-color: #343a40;
             color: #fff;
-            padding: 15px 20px;
+            padding: 18px 20px;
             text-align: center;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+        .logo-art {
+            margin: 0;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.75em;
+            line-height: 1.1;
+            color: #cfd4da;
+        }
+        .logo-text {
+            text-align: left;
+        }
+        .logo-title {
+            font-size: 1.7em;
+            font-weight: 700;
+            margin: 0;
+        }
+        .logo-subtitle {
+            margin-top: 4px;
+            font-size: 0.95em;
+            color: #dee2e6;
+            letter-spacing: 0.02em;
         }
         .container {
             width: 90%;
@@ -164,6 +192,14 @@
             margin-top: 8px;
             white-space: pre-wrap;
         }
+        @media (max-width: 600px) {
+            .logo-text {
+                text-align: center;
+            }
+            .logo-art {
+                font-size: 0.7em;
+            }
+        }
 {{end}}
 
 {{define "shared_head"}}
@@ -175,7 +211,20 @@
 
 {{define "site_header"}}
     <header>
-        <h1>{{.}}</h1>
+        <div class="logo">
+            <pre class="logo-art" aria-hidden="true">
+       _             __  
+      (_)___ _____  / /__
+     / / __ `/ __ \/ //_/
+    / / /_/ / / / / ,<   
+ __/ /\__,_/_/ /_/_/|_|  
+/___/                    
+            </pre>
+            <div class="logo-text">
+                <h1 class="logo-title">{{.}}</h1>
+                <div class="logo-subtitle">🃏 shuffle, post, repeat ✨</div>
+            </div>
+        </div>
     </header>
 {{end}}
 
@@ -194,7 +243,7 @@
 
 {{define "footer_brand"}}
         <footer>
-            <p>/jank/</p>
+            <p>/jank/ 🃏</p>
         </footer>
 {{end}}
 
