@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -57,6 +58,47 @@ func serveBoardView(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("Board not found: %v", err)
 		renderErrorPage(w, r, http.StatusNotFound, "Board Not Found", "We couldn't find that board.", "/")
 		return
+	}
+	if board != nil {
+		cardTagPattern := regexp.MustCompile(`\[\[([^\]]+)\]\]`)
+		for _, thread := range board.Threads {
+			if thread == nil {
+				continue
+			}
+			thread.ReplyCount = 0
+			thread.LastBump = thread.Created
+			thread.CardTags = nil
+
+			if len(thread.Posts) == 0 {
+				continue
+			}
+
+			if len(thread.Posts) > 1 {
+				thread.ReplyCount = len(thread.Posts) - 1
+			}
+			thread.LastBump = thread.Posts[len(thread.Posts)-1].Created
+
+			opContent := thread.Posts[0].Content
+			matches := cardTagPattern.FindAllStringSubmatch(opContent, -1)
+			if len(matches) == 0 {
+				continue
+			}
+			seen := make(map[string]struct{})
+			for _, match := range matches {
+				tag := strings.TrimSpace(match[1])
+				if tag == "" {
+					continue
+				}
+				if _, ok := seen[tag]; ok {
+					continue
+				}
+				seen[tag] = struct{}{}
+				thread.CardTags = append(thread.CardTags, tag)
+				if len(thread.CardTags) >= 4 {
+					break
+				}
+			}
+		}
 	}
 
 	authData := getAuthViewData(r)

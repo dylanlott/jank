@@ -45,6 +45,28 @@
             color: #6c757d;
             font-size: 0.9em;
         }
+        .thread-meta {
+            margin-top: 6px;
+            color: #6c757d;
+            font-size: 0.85em;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .thread-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .thread-tag {
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #f1f3f5;
+            color: #2f2f2f;
+            font-size: 0.75em;
+            letter-spacing: 0.02em;
+        }
         footer {
             margin-top: 40px;
         }
@@ -85,6 +107,17 @@
                     {{if .Author}}
                         <div class="thread-author">Started by <a href="/user/{{.Author | urlquery}}">{{.Author}}</a></div>
                     {{end}}
+                    <div class="thread-meta">
+                        <span>Replies: {{.ReplyCount}}</span>
+                        <span>Last bump: {{.LastBump.Format "Jan 2, 2006 at 3:04pm"}}</span>
+                        {{if .CardTags}}
+                            <span class="thread-tags">
+                                {{range .CardTags}}
+                                    <span class="thread-tag">[[ {{.}} ]]</span>
+                                {{end}}
+                            </span>
+                        {{end}}
+                    </div>
                 </li>
             {{end}}
             </ul>

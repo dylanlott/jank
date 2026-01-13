@@ -30,6 +30,9 @@ type Thread struct {
 	Author  string    `json:"author"`
 	Posts   []*Post   `json:"posts,omitempty"`
 	Created time.Time `json:"created"`
+	ReplyCount int       `json:"-"`
+	LastBump   time.Time `json:"-"`
+	CardTags   []string  `json:"-"`
 }
 
 // CardTree represents a scoped tree of cards with annotations.
