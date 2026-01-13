@@ -9,6 +9,8 @@
 /___/                    
 ```
 
+> a tcg-focused forum
+
 `jank` uses Go with PostgreSQL by default (SQLite is optional) to store data. It is intentionally simple with all front-end assets statically embedded in the Go binary at build time.
 
 ## Development
