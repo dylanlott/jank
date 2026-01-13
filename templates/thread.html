@@ -50,8 +50,64 @@
             color: #6c757d;
         }
         .post-flair {
-            font-size: 0.9em;
-            color: #ff6347;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+            font-size: 0.85em;
+        }
+        .post-flair-label {
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            font-size: 0.7em;
+            color: #6c757d;
+        }
+        .post-flair-badge {
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #1f2a44;
+            background: linear-gradient(120deg, #f8f9fb, #e9ecef);
+            box-shadow: 0 6px 14px rgba(31, 42, 68, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+            background-size: 160% 160%;
+            animation: flair-shift 7s ease infinite;
+        }
+        .post-flair[data-flair="uno"] .post-flair-badge {
+            color: #2d1b3a;
+            background: linear-gradient(120deg, #f7d1ff, #d7f0ff, #fff4c5);
+            box-shadow: 0 8px 18px rgba(120, 88, 166, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+        }
+        .post-flair[data-flair="dubs"] .post-flair-badge {
+            color: #0f2b2d;
+            background: linear-gradient(120deg, #d3fff5, #b9ddff, #e9f7ff);
+            box-shadow: 0 8px 18px rgba(20, 120, 140, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+        }
+        .post-flair[data-flair="trips"] .post-flair-badge {
+            color: #2b1d12;
+            background: linear-gradient(120deg, #ffe4b5, #ffd6a5, #fff2cc);
+            box-shadow: 0 8px 18px rgba(180, 120, 40, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+        }
+        .post-flair[data-flair="quads"] .post-flair-badge {
+            color: #1a2b1f;
+            background: linear-gradient(120deg, #d6ffd1, #c1f1d8, #f0ffea);
+            box-shadow: 0 8px 18px rgba(60, 140, 90, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+        }
+        .post-flair[data-flair="pents"] .post-flair-badge {
+            color: #2a1530;
+            background: linear-gradient(120deg, #fbd1ff, #f5c3d8, #f7d5ff);
+            box-shadow: 0 8px 18px rgba(150, 60, 140, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+        }
+        .post-flair[data-flair="default"] .post-flair-badge {
+            color: #2f2f2f;
+            background: linear-gradient(120deg, #f1f3f5, #e3e7eb);
+            box-shadow: 0 6px 14px rgba(40, 40, 40, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+        }
+        @keyframes flair-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
         .card-trees {
             margin: 20px 0 10px;
@@ -266,7 +322,10 @@
                             </div>
                         {{end}}
                         <div class="post-number">post ID: {{.Number}}</div>
-                        <div class="post-flair">flair: {{.Flair}}</div>
+                        <div class="post-flair" data-flair="{{.Flair}}" data-number="{{.Number}}">
+                            <span class="post-flair-label">flair</span>
+                            <span class="post-flair-badge">{{.Flair}}</span>
+                        </div>
                     </li>
                 {{end}}
             {{else}}
@@ -334,6 +393,42 @@
 
             treeBlocks.forEach(tree => {
                 tree.innerHTML = tree.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
+            });
+
+            const flairBlocks = document.querySelectorAll(".post");
+            flairBlocks.forEach(post => {
+                const flair = post.querySelector(".post-flair");
+                if (!flair) {
+                    return;
+                }
+                const numberText = post.querySelector(".post-number")?.textContent || "";
+                const number = (flair.dataset.number || numberText).replace(/\D/g, "");
+                const badge = flair.querySelector(".post-flair-badge");
+                if (!number || !badge) {
+                    return;
+                }
+
+                const hasSameSuffix = (len) => {
+                    if (number.length < len) {
+                        return false;
+                    }
+                    const suffix = number.slice(-len);
+                    return suffix.split("").every(char => char === suffix[0]);
+                };
+
+                let nextFlair = null;
+                if (hasSameSuffix(4)) {
+                    nextFlair = "quads";
+                } else if (hasSameSuffix(3)) {
+                    nextFlair = "trips";
+                } else if (hasSameSuffix(2)) {
+                    nextFlair = "dubs";
+                }
+
+                if (nextFlair) {
+                    flair.dataset.flair = nextFlair;
+                    badge.textContent = nextFlair;
+                }
             });
 
             function initTreeBuilder(options) {
