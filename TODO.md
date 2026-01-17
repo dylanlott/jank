@@ -1,6 +1,6 @@
 # TO DO
 
-- [ ] Thread list meta: show replies count, last bump time, OP card tags.
+- [x] Thread list meta: show replies count, last bump time, OP card tags.
 - [ ] Tripcode-style identity: optional “deck tag” or format tag for anonymity with flavor.
 - [ ] Fast reply: bottom-right slide-up reply box with markdown preview + card syntax.
 - [ ] Card hover: auto-render [[Card Name]] as tooltip with set/price links.

@@ -379,21 +379,109 @@
             const treeBlocks = document.querySelectorAll('.card-tree');
             const cardNamePattern = /\[\[([^\]]+)\]\]/g;
 
+            const createCardMarkup = (name) => {
+                const safeName = name.trim();
+                return `<span class="mtg-card" data-card-name="${safeName}">[[ ${safeName} ]]</span>`;
+            };
+
             postContents.forEach(content => {
-                content.innerHTML = content.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
+                content.innerHTML = content.innerHTML.replace(cardNamePattern, (_, name) => createCardMarkup(name));
             });
 
             if (threadTitle) {
-                threadTitle.innerHTML = threadTitle.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
+                threadTitle.innerHTML = threadTitle.innerHTML.replace(cardNamePattern, (_, name) => createCardMarkup(name));
             }
 
             if (threadMeta) {
-                threadMeta.innerHTML = threadMeta.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
+                threadMeta.innerHTML = threadMeta.innerHTML.replace(cardNamePattern, (_, name) => createCardMarkup(name));
             }
 
             treeBlocks.forEach(tree => {
-                tree.innerHTML = tree.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
+                tree.innerHTML = tree.innerHTML.replace(cardNamePattern, (_, name) => createCardMarkup(name));
             });
+
+            const cardImageCache = new Map();
+
+            function initCardTooltips() {
+                const cards = document.querySelectorAll(".mtg-card");
+                cards.forEach(card => {
+                    if (card.querySelector(".mtg-card-tooltip")) {
+                        return;
+                    }
+                    const name = card.dataset.cardName || card.textContent.replace(/\[\[|\]\]/g, "").trim();
+                    const tooltip = document.createElement("span");
+                    tooltip.className = "mtg-card-tooltip";
+                    tooltip.innerHTML = `
+                        <span class="mtg-card-tooltip-title">${name}</span>
+                        <span class="mtg-card-tooltip-loading">Loading art...</span>
+                        <img class="mtg-card-tooltip-image is-loading" alt="Card art for ${name}" loading="lazy" />
+                    `;
+                    card.appendChild(tooltip);
+
+                    const loadArt = async () => {
+                        if (tooltip.dataset.loaded === "true") {
+                            return;
+                        }
+                        tooltip.dataset.loaded = "true";
+                        const img = tooltip.querySelector(".mtg-card-tooltip-image");
+                        const loading = tooltip.querySelector(".mtg-card-tooltip-loading");
+                        if (!img || !loading) {
+                            return;
+                        }
+                        const finalizeLoaded = () => {
+                            img.classList.remove("is-loading");
+                            loading.remove();
+                        };
+                        if (cardImageCache.has(name)) {
+                            img.src = cardImageCache.get(name);
+                            img.addEventListener("load", finalizeLoaded, { once: true });
+                            img.addEventListener("error", () => {
+                                img.classList.remove("is-loading");
+                                loading.textContent = "Art unavailable.";
+                            }, { once: true });
+                            return;
+                        }
+                        try {
+                            const fetchCard = async (url) => {
+                                const response = await fetch(url);
+                                if (!response.ok) {
+                                    return null;
+                                }
+                                return response.json();
+                            };
+                            const exactUrl = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`;
+                            const fuzzyUrl = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`;
+                            let data = await fetchCard(exactUrl);
+                            if (!data) {
+                                data = await fetchCard(fuzzyUrl);
+                            }
+                            if (!data) {
+                                throw new Error("Scryfall lookup failed");
+                            }
+                            const imageUrl =
+                                data.image_uris?.normal ||
+                                data.image_uris?.small ||
+                                data.card_faces?.[0]?.image_uris?.normal ||
+                                data.card_faces?.[0]?.image_uris?.small;
+                            if (!imageUrl) {
+                                throw new Error("Missing card art");
+                            }
+                            cardImageCache.set(name, imageUrl);
+                            img.src = imageUrl;
+                            img.addEventListener("load", finalizeLoaded, { once: true });
+                            img.addEventListener("error", () => {
+                                img.classList.remove("is-loading");
+                                loading.textContent = "Art unavailable.";
+                            }, { once: true });
+                        } catch (error) {
+                            img.classList.remove("is-loading");
+                            loading.textContent = "Art unavailable.";
+                        }
+                    };
+
+                    card.addEventListener("mouseenter", loadArt, { once: true });
+                });
+            }
 
             const flairBlocks = document.querySelectorAll(".post");
             flairBlocks.forEach(post => {
@@ -430,6 +518,8 @@
                     badge.textContent = nextFlair;
                 }
             });
+
+            initCardTooltips();
 
             function initTreeBuilder(options) {
                 const form = document.getElementById(options.formId);

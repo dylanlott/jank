@@ -67,6 +67,26 @@
             font-size: 0.75em;
             letter-spacing: 0.02em;
         }
+        .format-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0 18px;
+        }
+        .format-filter {
+            border: 1px solid #ced4da;
+            background: #f8f9fa;
+            color: #495057;
+            border-radius: 999px;
+            padding: 4px 12px;
+            font-size: 0.85em;
+            cursor: pointer;
+        }
+        .format-filter.is-active {
+            background: #e7f5ff;
+            border-color: #74c0fc;
+            color: #1864ab;
+        }
         footer {
             margin-top: 40px;
         }
@@ -96,6 +116,13 @@
         {{end}}
 
         <h2>Threads 🧵</h2>
+        <div class="format-filters" aria-label="Format filters">
+            <button class="format-filter" type="button" data-format="standard">Standard</button>
+            <button class="format-filter" type="button" data-format="modern">Modern</button>
+            <button class="format-filter" type="button" data-format="pioneer">Pioneer</button>
+            <button class="format-filter" type="button" data-format="edh">EDH</button>
+            <button class="format-filter" type="button" data-format="clear">Clear</button>
+        </div>
         {{if .Board.Threads}}
             <ul class="threads">
             {{range .Board.Threads}}
@@ -137,21 +164,164 @@
             const threadTitles = document.querySelectorAll('.thread-title a');
             const boardTitle = document.querySelector('.board-title');
             const boardMeta = document.querySelector('.board-meta');
-            const treeBlocks = document.querySelectorAll('.card-tree');
             const cardNamePattern = /\[\[([^\]]+)\]\]/g;
 
+            const createCardMarkup = (name) => {
+                const safeName = name.trim();
+                return `<span class="mtg-card" data-card-name="${safeName}">[[ ${safeName} ]]</span>`;
+            };
+
             threadTitles.forEach(title => {
-                title.innerHTML = title.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
+                title.innerHTML = title.innerHTML.replace(cardNamePattern, (_, name) => createCardMarkup(name));
             });
 
             if (boardTitle) {
-                boardTitle.innerHTML = boardTitle.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
+                boardTitle.innerHTML = boardTitle.innerHTML.replace(cardNamePattern, (_, name) => createCardMarkup(name));
             }
 
             if (boardMeta) {
-                boardMeta.innerHTML = boardMeta.innerHTML.replace(cardNamePattern, '<span class="mtg-card">[[ $1 ]]</span>');
+                boardMeta.innerHTML = boardMeta.innerHTML.replace(cardNamePattern, (_, name) => createCardMarkup(name));
             }
 
+            const cardImageCache = new Map();
+
+            function initCardTooltips() {
+                const cards = document.querySelectorAll(".mtg-card");
+                cards.forEach(card => {
+                    if (card.querySelector(".mtg-card-tooltip")) {
+                        return;
+                    }
+                    const name = card.dataset.cardName || card.textContent.replace(/\[\[|\]\]/g, "").trim();
+                    const tooltip = document.createElement("span");
+                    tooltip.className = "mtg-card-tooltip";
+                    tooltip.innerHTML = `
+                        <span class="mtg-card-tooltip-title">${name}</span>
+                        <span class="mtg-card-tooltip-loading">Loading art...</span>
+                        <img class="mtg-card-tooltip-image is-loading" alt="Card art for ${name}" loading="lazy" />
+                    `;
+                    card.appendChild(tooltip);
+
+                    const loadArt = async () => {
+                        if (tooltip.dataset.loaded === "true") {
+                            return;
+                        }
+                        tooltip.dataset.loaded = "true";
+                        const img = tooltip.querySelector(".mtg-card-tooltip-image");
+                        const loading = tooltip.querySelector(".mtg-card-tooltip-loading");
+                        if (!img || !loading) {
+                            return;
+                        }
+                        const finalizeLoaded = () => {
+                            img.classList.remove("is-loading");
+                            loading.remove();
+                        };
+                        if (cardImageCache.has(name)) {
+                            img.src = cardImageCache.get(name);
+                            img.addEventListener("load", finalizeLoaded, { once: true });
+                            img.addEventListener("error", () => {
+                                img.classList.remove("is-loading");
+                                loading.textContent = "Art unavailable.";
+                            }, { once: true });
+                            return;
+                        }
+                        try {
+                            const fetchCard = async (url) => {
+                                const response = await fetch(url);
+                                if (!response.ok) {
+                                    return null;
+                                }
+                                return response.json();
+                            };
+                            const exactUrl = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`;
+                            const fuzzyUrl = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`;
+                            let data = await fetchCard(exactUrl);
+                            if (!data) {
+                                data = await fetchCard(fuzzyUrl);
+                            }
+                            if (!data) {
+                                throw new Error("Scryfall lookup failed");
+                            }
+                            const imageUrl =
+                                data.image_uris?.normal ||
+                                data.image_uris?.small ||
+                                data.card_faces?.[0]?.image_uris?.normal ||
+                                data.card_faces?.[0]?.image_uris?.small;
+                            if (!imageUrl) {
+                                throw new Error("Missing card art");
+                            }
+                            cardImageCache.set(name, imageUrl);
+                            img.src = imageUrl;
+                            img.addEventListener("load", finalizeLoaded, { once: true });
+                            img.addEventListener("error", () => {
+                                img.classList.remove("is-loading");
+                                loading.textContent = "Art unavailable.";
+                            }, { once: true });
+                        } catch (error) {
+                            img.classList.remove("is-loading");
+                            loading.textContent = "Art unavailable.";
+                        }
+                    };
+
+                    card.addEventListener("mouseenter", loadArt, { once: true });
+                });
+            }
+
+            function initFormatFilters() {
+                const filterButtons = document.querySelectorAll(".format-filter");
+                const threads = document.querySelectorAll(".thread");
+                const formatAliases = {
+                    commander: "edh",
+                    edh: "edh",
+                    standard: "standard",
+                    modern: "modern",
+                    pioneer: "pioneer"
+                };
+
+                threads.forEach(thread => {
+                    const tags = Array.from(thread.querySelectorAll(".thread-tag")).map(tag => {
+                        return tag.textContent.replace(/\[\[|\]\]/g, "").trim().toLowerCase();
+                    });
+                    const formats = new Set();
+                    tags.forEach(tag => {
+                        const mapped = formatAliases[tag];
+                        if (mapped) {
+                            formats.add(mapped);
+                        }
+                    });
+                    thread.dataset.formats = Array.from(formats).join(",");
+                });
+
+                function applyFilters() {
+                    const activeFormats = Array.from(filterButtons)
+                        .filter(btn => btn.classList.contains("is-active") && btn.dataset.format !== "clear")
+                        .map(btn => btn.dataset.format);
+
+                    threads.forEach(thread => {
+                        if (activeFormats.length === 0) {
+                            thread.style.display = "";
+                            return;
+                        }
+                        const threadFormats = (thread.dataset.formats || "").split(",").filter(Boolean);
+                        const matches = activeFormats.some(format => threadFormats.includes(format));
+                        thread.style.display = matches ? "" : "none";
+                    });
+                }
+
+                filterButtons.forEach(button => {
+                    button.addEventListener("click", () => {
+                        if (button.dataset.format === "clear") {
+                            filterButtons.forEach(btn => btn.classList.remove("is-active"));
+                            applyFilters();
+                            return;
+                        }
+                        button.classList.toggle("is-active");
+                        applyFilters();
+                    });
+                });
+            }
+
+            initCardTooltips();
+            initFormatFilters();
         });
     </script>
 </body>

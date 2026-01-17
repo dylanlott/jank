@@ -96,8 +96,82 @@
             text-decoration: underline;
         }
         .mtg-card {
+            position: relative;
+            display: inline-block;
             font-weight: 600;
             color: #d9534f;
+            cursor: help;
+        }
+        .mtg-card-tooltip {
+            position: absolute;
+            left: 50%;
+            bottom: 120%;
+            transform: translateX(-50%);
+            min-width: 200px;
+            background: #ffffff;
+            color: #343a40;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 8px 10px;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+            font-size: 0.8em;
+            line-height: 1.4;
+            z-index: 10;
+            display: none;
+            white-space: nowrap;
+        }
+        .mtg-card-tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px;
+            border-style: solid;
+            border-color: #ffffff transparent transparent transparent;
+        }
+        .mtg-card:hover .mtg-card-tooltip {
+            display: block;
+        }
+        .mtg-card-tooltip-title {
+            font-weight: 700;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .mtg-card-tooltip-image {
+            display: block;
+            width: 200px;
+            aspect-ratio: 63 / 88;
+            height: auto;
+            border-radius: 6px;
+            margin: 6px auto 8px;
+            background: #f1f3f5;
+        }
+        .mtg-card-tooltip-image.is-loading {
+            background: linear-gradient(110deg, #eef1f4 8%, #f8fafc 18%, #eef1f4 33%);
+            background-size: 200% 100%;
+            animation: card-skeleton 1.2s linear infinite;
+        }
+        @keyframes card-skeleton {
+            to {
+                background-position: -200% 0;
+            }
+        }
+        .mtg-card-tooltip-loading {
+            display: block;
+            font-size: 0.75em;
+            color: #6c757d;
+            text-align: center;
+            margin: 6px 0;
+        }
+        .mtg-card-tooltip-links {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+        .mtg-card-tooltip-links a {
+            color: #0b7285;
+            font-weight: 600;
         }
         .profile-header {
             margin-bottom: 20px;
