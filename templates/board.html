@@ -32,6 +32,8 @@
             display: flex;
             justify-content: space-between;
             margin-bottom: 10px;
+            gap: 8px;
+            flex-wrap: wrap;
         }
         .thread-title {
             font-weight: bold;
@@ -97,6 +99,13 @@
             }
             .thread-date {
                 margin-top: 5px;
+            }
+            .format-filters {
+                gap: 6px;
+            }
+            .format-filter {
+                flex: 1 1 auto;
+                text-align: center;
             }
         }
     </style>
@@ -263,8 +272,49 @@
                     };
 
                     card.addEventListener("mouseenter", loadArt, { once: true });
+                    let pressTimer = null;
+                    const clearPressTimer = () => {
+                        if (pressTimer) {
+                            clearTimeout(pressTimer);
+                            pressTimer = null;
+                        }
+                    };
+                    const deactivateOthers = () => {
+                        cards.forEach(other => {
+                            if (other !== card) {
+                                other.classList.remove("is-active");
+                            }
+                        });
+                    };
+                    card.addEventListener("touchstart", (event) => {
+                        clearPressTimer();
+                        pressTimer = window.setTimeout(() => {
+                            deactivateOthers();
+                            card.classList.add("is-active");
+                            loadArt();
+                        }, 300);
+                        event.stopPropagation();
+                    }, { passive: true });
+                    card.addEventListener("touchend", clearPressTimer);
+                    card.addEventListener("touchmove", clearPressTimer);
+                    card.addEventListener("click", (event) => {
+                        if (card.classList.contains("is-active")) {
+                            card.classList.remove("is-active");
+                            event.preventDefault();
+                            event.stopPropagation();
+                            return;
+                        }
+                    });
                 });
             }
+
+            document.addEventListener("touchstart", (event) => {
+                if (!event.target.closest(".mtg-card")) {
+                    document.querySelectorAll(".mtg-card.is-active").forEach(card => {
+                        card.classList.remove("is-active");
+                    });
+                }
+            }, { passive: true });
 
             function initFormatFilters() {
                 const filterButtons = document.querySelectorAll(".format-filter");

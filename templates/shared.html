@@ -7,6 +7,8 @@
             margin: 0;
             padding: 0;
             background-color: #f4f4f4;
+            font-size: clamp(0.95rem, 0.9rem + 0.2vw, 1.05rem);
+            line-height: 1.5;
         }
         h1, h2, h3, .logo-title, .board-title {
             font-family: "IBM Plex Serif", "Times New Roman", serif;
@@ -35,7 +37,7 @@
             text-align: left;
         }
         .logo-title {
-            font-size: 1.7em;
+            font-size: clamp(1.35rem, 1.1rem + 1vw, 1.9rem);
             font-weight: 700;
             margin: 0;
         }
@@ -46,10 +48,10 @@
             letter-spacing: 0.02em;
         }
         .container {
-            width: 90%;
-            margin: 20px auto;
+            width: min(92%, 960px);
+            margin: 18px auto;
             background-color: #fff;
-            padding: 20px;
+            padding: clamp(14px, 2.6vw, 22px);
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
         .auth-bar {
@@ -57,6 +59,8 @@
             margin-bottom: 15px;
             color: #6c757d;
             font-size: 0.9em;
+            line-height: 1.6;
+            word-break: break-word;
         }
         label {
             display: block;
@@ -131,6 +135,9 @@
             border-color: #ffffff transparent transparent transparent;
         }
         .mtg-card:hover .mtg-card-tooltip {
+            display: block;
+        }
+        .mtg-card.is-active .mtg-card-tooltip {
             display: block;
         }
         .mtg-card-tooltip-title {
@@ -269,18 +276,44 @@
             margin-top: 8px;
             white-space: pre-wrap;
         }
-        @media (max-width: 600px) {
+        @media (max-width: 900px) {
+            header {
+                padding: 16px 14px;
+            }
+            .logo {
+                gap: 12px;
+            }
             .logo-text {
                 text-align: center;
             }
             .logo-art {
                 font-size: 0.7em;
             }
+            .auth-bar {
+                text-align: left;
+            }
+        }
+        @media (max-width: 600px) {
+            .container {
+                width: 94%;
+                margin: 14px auto;
+                padding: 14px;
+            }
+            .mtg-card-tooltip {
+                left: 0;
+                transform: none;
+                bottom: 120%;
+                max-width: 90vw;
+            }
+            .mtg-card-tooltip-image {
+                width: min(200px, 78vw);
+            }
         }
 {{end}}
 
 {{define "shared_head"}}
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600;700&display=swap" />

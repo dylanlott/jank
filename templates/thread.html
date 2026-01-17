@@ -32,6 +32,8 @@
             display: flex;
             justify-content: space-between;
             margin-bottom: 10px;
+            gap: 8px;
+            flex-wrap: wrap;
         }
         .post-author {
             font-weight: bold;
@@ -55,6 +57,7 @@
             gap: 8px;
             margin-top: 4px;
             font-size: 0.85em;
+            flex-wrap: wrap;
         }
         .post-flair-label {
             text-transform: uppercase;
@@ -251,6 +254,15 @@
             }
             .post-date {
                 margin-top: 5px;
+            }
+            .card-tree-node {
+                padding-left: calc(var(--tree-depth) * 14px + 22px);
+            }
+            .card-tree-node::before {
+                width: calc(var(--tree-depth) * 14px);
+            }
+            .card-tree-connector {
+                left: calc(var(--tree-depth) * 14px);
             }
         }
     </style>
@@ -480,8 +492,49 @@
                     };
 
                     card.addEventListener("mouseenter", loadArt, { once: true });
+                    let pressTimer = null;
+                    const clearPressTimer = () => {
+                        if (pressTimer) {
+                            clearTimeout(pressTimer);
+                            pressTimer = null;
+                        }
+                    };
+                    const deactivateOthers = () => {
+                        cards.forEach(other => {
+                            if (other !== card) {
+                                other.classList.remove("is-active");
+                            }
+                        });
+                    };
+                    card.addEventListener("touchstart", (event) => {
+                        clearPressTimer();
+                        pressTimer = window.setTimeout(() => {
+                            deactivateOthers();
+                            card.classList.add("is-active");
+                            loadArt();
+                        }, 300);
+                        event.stopPropagation();
+                    }, { passive: true });
+                    card.addEventListener("touchend", clearPressTimer);
+                    card.addEventListener("touchmove", clearPressTimer);
+                    card.addEventListener("click", (event) => {
+                        if (card.classList.contains("is-active")) {
+                            card.classList.remove("is-active");
+                            event.preventDefault();
+                            event.stopPropagation();
+                            return;
+                        }
+                    });
                 });
             }
+
+            document.addEventListener("touchstart", (event) => {
+                if (!event.target.closest(".mtg-card")) {
+                    document.querySelectorAll(".mtg-card.is-active").forEach(card => {
+                        card.classList.remove("is-active");
+                    });
+                }
+            }, { passive: true });
 
             const flairBlocks = document.querySelectorAll(".post");
             flairBlocks.forEach(post => {
