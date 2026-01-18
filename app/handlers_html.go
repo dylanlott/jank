@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -204,11 +205,26 @@ func serveThreadView(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		lastBump := thread.Created
+		if len(thread.Posts) > 0 {
+			lastBump = thread.Posts[len(thread.Posts)-1].Created
+		}
+		const bumpCooldown = 3 * time.Minute
+		const necroThreshold = 30 * 24 * time.Hour
+		sinceBump := time.Since(lastBump)
+		bumpCooldownRemaining := 0
+		if sinceBump >= 0 && sinceBump < bumpCooldown {
+			bumpCooldownRemaining = int(bumpCooldown.Seconds() - sinceBump.Seconds())
+		}
+		necroWarning := sinceBump > necroThreshold
 		authData := getAuthViewData(r)
 		data := ThreadViewData{
-			AuthViewData: authData,
-			Thread:       thread,
-			BoardID:      boardID,
+			AuthViewData:          authData,
+			Thread:                thread,
+			BoardID:               boardID,
+			LastBump:              lastBump,
+			BumpCooldownRemaining: bumpCooldownRemaining,
+			NecroWarning:          necroWarning,
 		}
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")

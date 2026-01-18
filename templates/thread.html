@@ -11,10 +11,10 @@
         .thread-title {
             font-size: 1.8em;
             margin-bottom: 5px;
-            color: #343a40;
+            color: var(--color-text-strong);
         }
         .thread-meta {
-            color: #6c757d;
+            color: var(--color-text-muted);
             margin-bottom: 20px;
         }
         .posts {
@@ -22,7 +22,7 @@
             padding: 0;
         }
         .post {
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--color-border-strong);
             padding: 15px 0;
         }
         .post:last-child {
@@ -37,10 +37,10 @@
         }
         .post-author {
             font-weight: bold;
-            color: #343a40;
+            color: var(--color-text-strong);
         }
         .post-date {
-            color: #6c757d;
+            color: var(--color-text-muted);
             font-size: 0.9em;
         }
         .post-content {
@@ -49,7 +49,51 @@
         }
         .post-number {
             font-size: 0.9em;
-            color: #6c757d;
+            color: var(--color-text-muted);
+        }
+        .post-links {
+            margin-top: 6px;
+            font-size: 0.9em;
+            color: var(--color-text-muted);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .post-anchor {
+            color: var(--color-link);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .post-anchor:hover {
+            text-decoration: underline;
+        }
+        .post-quote {
+            color: var(--color-link);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .post-quote:hover {
+            text-decoration: underline;
+        }
+        .post-backlinks {
+            display: inline-flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .post-backlinks-label {
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-size: 0.7em;
+            color: var(--color-text-muted);
+        }
+        .post-backlinks a {
+            color: var(--color-link);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .post-backlinks a:hover {
+            text-decoration: underline;
         }
         .post-flair {
             display: inline-flex;
@@ -63,7 +107,7 @@
             text-transform: uppercase;
             letter-spacing: 0.16em;
             font-size: 0.7em;
-            color: #6c757d;
+            color: var(--color-text-muted);
         }
         .post-flair-badge {
             padding: 3px 10px;
@@ -107,6 +151,33 @@
             background: linear-gradient(120deg, #f1f3f5, #e3e7eb);
             box-shadow: 0 6px 14px rgba(40, 40, 40, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
         }
+        :root[data-theme="dark"] .post-flair .post-flair-badge {
+            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        }
+        :root[data-theme="dark"] .post-flair[data-flair="uno"] .post-flair-badge {
+            color: #ffd9ff;
+            background: linear-gradient(120deg, #5b14d6, #1b6bff, #ff9b2f);
+        }
+        :root[data-theme="dark"] .post-flair[data-flair="dubs"] .post-flair-badge {
+            color: #c6feff;
+            background: linear-gradient(120deg, #00c2b3, #007bff, #12f3ff);
+        }
+        :root[data-theme="dark"] .post-flair[data-flair="trips"] .post-flair-badge {
+            color: #ffe6ad;
+            background: linear-gradient(120deg, #ff6a00, #ff2f6f, #ffd400);
+        }
+        :root[data-theme="dark"] .post-flair[data-flair="quads"] .post-flair-badge {
+            color: #c9ffe1;
+            background: linear-gradient(120deg, #17f07e, #00c4ff, #7bff33);
+        }
+        :root[data-theme="dark"] .post-flair[data-flair="pents"] .post-flair-badge {
+            color: #ffd0ff;
+            background: linear-gradient(120deg, #ff2df7, #a42bff, #ff5fa2);
+        }
+        :root[data-theme="dark"] .post-flair[data-flair="default"] .post-flair-badge {
+            color: #e9f6ff;
+            background: linear-gradient(120deg, #1a2a3f, #23486f);
+        }
         @keyframes flair-shift {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
@@ -116,11 +187,11 @@
             margin: 20px 0 10px;
         }
         .card-tree {
-            border: 1px solid #e1e4e8;
+            border: 1px solid var(--color-border-soft);
             border-radius: 6px;
             padding: 12px 14px;
             margin-bottom: 16px;
-            background: #fafbfc;
+            background: var(--color-card-bg);
         }
         .card-tree-header {
             display: flex;
@@ -130,19 +201,19 @@
         }
         .card-tree-title {
             font-weight: 600;
-            color: #343a40;
+            color: var(--color-text-strong);
         }
         .card-tree-badge {
             font-size: 0.75em;
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            background: #d1ecf1;
-            color: #0c5460;
+            background: var(--color-accent-soft-bg);
+            color: var(--color-accent-soft-text);
             border-radius: 10px;
             padding: 2px 8px;
         }
         .card-tree-desc {
-            color: #6c757d;
+            color: var(--color-text-muted);
             margin-bottom: 8px;
         }
         .card-tree-nodes {
@@ -166,8 +237,8 @@
                 to right,
                 transparent 0,
                 transparent 14px,
-                #cfd4da 14px,
-                #cfd4da 15px
+                var(--color-tree-line) 14px,
+                var(--color-tree-line) 15px
             );
         }
         .card-tree-connector {
@@ -184,7 +255,7 @@
             left: 0;
             top: 5px;
             width: 12px;
-            border-top: 2px solid #cfd4da;
+            border-top: 2px solid var(--color-tree-line);
         }
         .card-tree-connector::after {
             content: "";
@@ -195,7 +266,7 @@
             height: 0;
             border-top: 4px solid transparent;
             border-bottom: 4px solid transparent;
-            border-left: 6px solid #cfd4da;
+            border-left: 6px solid var(--color-tree-line);
         }
         .card-tree-card {
             font-weight: 600;
@@ -206,7 +277,7 @@
             margin: 4px 0 0 0;
         }
         .card-tree-annotation {
-            color: #495057;
+            color: var(--color-text);
             font-size: 0.95em;
             margin-top: 2px;
         }
@@ -214,7 +285,7 @@
             text-transform: uppercase;
             font-size: 0.7em;
             letter-spacing: 0.04em;
-            color: #6c757d;
+            color: var(--color-text-muted);
             margin-right: 6px;
         }
         .card-tree-annotation-label {
@@ -222,19 +293,39 @@
             margin-right: 6px;
         }
         .card-tree-annotation-tags {
-            color: #6c757d;
+            color: var(--color-text-muted);
             margin-right: 6px;
         }
         .new-post-form {
             margin-top: 30px;
         }
+        .bump-notice {
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin: 10px 0;
+            font-size: 0.95em;
+            background: var(--color-surface-muted);
+            color: var(--color-text);
+            border: 1px solid var(--color-border-soft);
+        }
+        .bump-notice strong {
+            color: var(--color-text-strong);
+        }
+        .bump-notice.bump-necro {
+            background: rgba(217, 83, 79, 0.08);
+            border-color: rgba(217, 83, 79, 0.2);
+        }
+        .bump-notice.bump-cooldown {
+            background: rgba(0, 123, 255, 0.08);
+            border-color: rgba(0, 123, 255, 0.2);
+        }
         .new-post-form h2 {
             margin-bottom: 10px;
-            color: #343a40;
+            color: var(--color-text-strong);
         }
         .new-post-form button {
             padding: 10px 20px;
-            background-color: #28a745;
+            background-color: var(--color-success);
             color: #fff;
             border: none;
             border-radius: 4px;
@@ -242,7 +333,103 @@
             font-size: 1em;
         }
         .new-post-form button:hover {
-            background-color: #218838;
+            background-color: var(--color-success-hover);
+        }
+        .fast-reply-trigger {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            z-index: 30;
+            padding: 10px 16px;
+            border-radius: 999px;
+            border: none;
+            background: var(--color-primary);
+            color: #fff;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            box-shadow: 0 12px 30px rgba(20, 30, 50, 0.25);
+            cursor: pointer;
+        }
+        .fast-reply-panel {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            width: min(420px, 90vw);
+            background: var(--color-card-bg);
+            border: 1px solid var(--color-border-strong);
+            border-radius: 18px;
+            box-shadow: 0 18px 40px rgba(20, 30, 50, 0.25);
+            transform: translateY(140%);
+            transition: transform 0.3s ease;
+            z-index: 40;
+            padding: 16px 16px 14px;
+            max-height: min(70vh, 560px);
+            overflow: auto;
+        }
+        .fast-reply-panel.is-open {
+            transform: translateY(0);
+        }
+        .fast-reply-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .fast-reply-title {
+            font-weight: 700;
+            color: var(--color-text-strong);
+        }
+        .fast-reply-close {
+            border: none;
+            background: transparent;
+            color: var(--color-text-muted);
+            font-size: 1.2em;
+            cursor: pointer;
+        }
+        .fast-reply-body {
+            display: grid;
+            gap: 10px;
+        }
+        .fast-reply-body textarea {
+            width: 100%;
+            resize: vertical;
+            min-height: 120px;
+        }
+        .fast-reply-preview {
+            border-radius: 12px;
+            border: 1px solid var(--color-border-soft);
+            background: var(--color-surface-alt);
+            padding: 10px 12px;
+            min-height: 120px;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+        .fast-reply-preview blockquote {
+            margin: 0 0 8px;
+            padding-left: 12px;
+            border-left: 3px solid var(--color-border-strong);
+            color: var(--color-text-muted);
+        }
+        .fast-reply-meta {
+            color: var(--color-text-muted);
+            font-size: 0.85em;
+        }
+        .fast-reply-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+        .fast-reply-actions button {
+            padding: 8px 16px;
+            background-color: var(--color-success);
+            color: #fff;
+            border: none;
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .fast-reply-actions button:hover {
+            background-color: var(--color-success-hover);
         }
         footer {
             margin-top: 40px;
@@ -264,6 +451,17 @@
             .card-tree-connector {
                 left: calc(var(--tree-depth) * 14px);
             }
+            .fast-reply-trigger {
+                right: 12px;
+                bottom: 12px;
+            }
+            .fast-reply-panel {
+                right: 12px;
+                left: 12px;
+                width: auto;
+                bottom: 12px;
+                max-height: 75vh;
+            }
         }
     </style>
 </head>
@@ -281,7 +479,7 @@
         <ul class="posts">
             {{if .Thread.Posts}}
                 {{range .Thread.Posts}}
-                    <li class="post">
+                    <li class="post" id="post-{{.ID}}" data-post-id="{{.ID}}">
                         <div class="post-header">
                             <div class="post-author">{{.Author}}</div>
                             <div class="post-date">{{.Created.Format "Jan 2, 2006 at 3:04pm"}}</div>
@@ -334,6 +532,10 @@
                             </div>
                         {{end}}
                         <div class="post-number">post ID: {{.Number}}</div>
+                        <div class="post-links">
+                            <a class="post-anchor" href="#post-{{.ID}}">&gt;&gt;{{.ID}}</a>
+                            <span class="post-backlinks" data-backlinks-for="{{.ID}}"></span>
+                        </div>
                         <div class="post-flair" data-flair="{{.Flair}}" data-number="{{.Number}}">
                             <span class="post-flair-label">flair</span>
                             <span class="post-flair-badge">{{.Flair}}</span>
@@ -353,6 +555,16 @@
         </ul>
 
         {{if .IsAuthenticated}}
+            {{if gt .BumpCooldownRemaining 0}}
+                <div class="bump-notice bump-cooldown" data-remaining="{{.BumpCooldownRemaining}}">
+                    <strong>Slow bump:</strong> this thread was just updated. Consider waiting <span class="bump-countdown"></span> before pushing it again.
+                </div>
+            {{end}}
+            {{if .NecroWarning}}
+                <div class="bump-notice bump-necro">
+                    <strong>Necro warning:</strong> last bump was {{.LastBump.Format "Jan 2, 2006"}}. Consider starting a fresh thread.
+                </div>
+            {{end}}
             <div class="new-post-form">
                 <h2 id="reply">Reply to this Thread 💬</h2>
                 <p class="muted">Posting as {{.Username}}</p>
@@ -376,7 +588,32 @@
                     <button type="submit">Post Reply</button>
                 </form>
             </div>
+            <button class="fast-reply-trigger" id="fast-reply-toggle" type="button" aria-expanded="false">
+                Fast reply
+            </button>
+            <div class="fast-reply-panel" id="fast-reply-panel" aria-hidden="true">
+                <div class="fast-reply-header">
+                    <div class="fast-reply-title">Quick reply</div>
+                    <button class="fast-reply-close" type="button" id="fast-reply-close" aria-label="Close fast reply">×</button>
+                </div>
+                <div class="fast-reply-meta">Supports **bold**, *italic*, `code`, [links](url), and [[Card Name]].</div>
+                <form id="fast-reply-form" method="POST" action="/view/thread/{{.Thread.ID}}/post">
+                    <div class="fast-reply-body">
+                        <textarea id="fast-reply-content" name="content" rows="6" placeholder="Drop a fast reply..." required></textarea>
+                        <div class="fast-reply-preview" id="fast-reply-preview">Preview will appear here.</div>
+                    </div>
+                    <input type="hidden" name="tree_payload" value="" />
+                    <div class="fast-reply-actions">
+                        <button type="submit">Post</button>
+                    </div>
+                </form>
+            </div>
         {{else}}
+            {{if .NecroWarning}}
+                <div class="bump-notice bump-necro">
+                    <strong>Necro warning:</strong> last bump was {{.LastBump.Format "Jan 2, 2006"}}. Consider starting a fresh thread.
+                </div>
+            {{end}}
             <p>You must be signed in to reply.</p>
             <p><a href="/login?next={{.CurrentPath | urlquery}}">Log in</a> or <a href="/signup?next={{.CurrentPath | urlquery}}">sign up</a> to post.</p>
         {{end}}
@@ -396,8 +633,30 @@
                 return `<span class="mtg-card" data-card-name="${safeName}">[[ ${safeName} ]]</span>`;
             };
 
+            const quotePattern = /&gt;&gt;(\d+)/g;
+            const rawQuotePattern = />>(\d+)/g;
+            const backlinks = new Map();
+
+            const recordBacklink = (fromID, toID) => {
+                if (!fromID || !toID) {
+                    return;
+                }
+                if (!backlinks.has(toID)) {
+                    backlinks.set(toID, new Set());
+                }
+                backlinks.get(toID).add(fromID);
+            };
+
             postContents.forEach(content => {
-                content.innerHTML = content.innerHTML.replace(cardNamePattern, (_, name) => createCardMarkup(name));
+                const post = content.closest(".post");
+                const postID = post?.dataset.postId;
+                const html = content.innerHTML;
+                const matches = [...html.matchAll(quotePattern), ...html.matchAll(rawQuotePattern)];
+                matches.forEach(match => recordBacklink(postID, match[1]));
+                const withQuotes = html
+                    .replace(quotePattern, (_, id) => `<a class="post-quote" href="#post-${id}">&gt;&gt;${id}</a>`)
+                    .replace(rawQuotePattern, (_, id) => `<a class="post-quote" href="#post-${id}">&gt;&gt;${id}</a>`);
+                content.innerHTML = withQuotes.replace(cardNamePattern, (_, name) => createCardMarkup(name));
             });
 
             if (threadTitle) {
@@ -410,6 +669,24 @@
 
             treeBlocks.forEach(tree => {
                 tree.innerHTML = tree.innerHTML.replace(cardNamePattern, (_, name) => createCardMarkup(name));
+            });
+
+            document.querySelectorAll(".post-backlinks").forEach(container => {
+                const postID = container.dataset.backlinksFor;
+                const refs = backlinks.get(postID);
+                if (!refs || refs.size === 0) {
+                    return;
+                }
+                const label = document.createElement("span");
+                label.className = "post-backlinks-label";
+                label.textContent = "Replies";
+                container.appendChild(label);
+                Array.from(refs).sort((a, b) => Number(a) - Number(b)).forEach(refID => {
+                    const link = document.createElement("a");
+                    link.href = `#post-${refID}`;
+                    link.textContent = `>>${refID}`;
+                    container.appendChild(link);
+                });
             });
 
             const cardImageCache = new Map();
@@ -785,6 +1062,130 @@
                 builderId: "tree-builder",
                 payloadId: "tree_payload"
             });
+
+            const bumpNotice = document.querySelector(".bump-notice.bump-cooldown");
+            if (bumpNotice) {
+                const countdown = bumpNotice.querySelector(".bump-countdown");
+                const total = Number(bumpNotice.dataset.remaining || "0");
+                const formatCountdown = (seconds) => {
+                    const minutes = Math.floor(seconds / 60);
+                    const remaining = Math.max(0, Math.floor(seconds % 60));
+                    if (minutes > 0) {
+                        return `${minutes}m ${remaining}s`;
+                    }
+                    return `${remaining}s`;
+                };
+                if (countdown && total > 0) {
+                    let remaining = total;
+                    countdown.textContent = formatCountdown(remaining);
+                    const timer = window.setInterval(() => {
+                        remaining -= 1;
+                        if (remaining <= 0) {
+                            countdown.textContent = "now";
+                            window.clearInterval(timer);
+                            return;
+                        }
+                        countdown.textContent = formatCountdown(remaining);
+                    }, 1000);
+                }
+            }
+
+            const fastReplyToggle = document.getElementById("fast-reply-toggle");
+            const fastReplyPanel = document.getElementById("fast-reply-panel");
+            const fastReplyClose = document.getElementById("fast-reply-close");
+            const fastReplyForm = document.getElementById("fast-reply-form");
+            const fastReplyContent = document.getElementById("fast-reply-content");
+            const fastReplyPreview = document.getElementById("fast-reply-preview");
+            const mainReplyContent = document.getElementById("content");
+
+            const escapeHtml = (value) => {
+                return value
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/\"/g, "&quot;")
+                    .replace(/'/g, "&#39;");
+            };
+
+            const renderMarkdownPreview = (value) => {
+                if (!fastReplyPreview) {
+                    return;
+                }
+                if (!value.trim()) {
+                    fastReplyPreview.textContent = "Preview will appear here.";
+                    return;
+                }
+                let output = escapeHtml(value);
+                const codeTokens = [];
+                output = output.replace(/`([^`]+)`/g, (_, code) => {
+                    const token = `__CODE_${codeTokens.length}__`;
+                    codeTokens.push(code);
+                    return token;
+                });
+                output = output.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
+                    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+                });
+                output = output.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+                output = output.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+                output = output
+                    .split("\n")
+                    .map(line => {
+                        if (line.startsWith("&gt;")) {
+                            return `<blockquote>${line.replace(/^&gt;\s?/, "")}</blockquote>`;
+                        }
+                        return line;
+                    })
+                    .join("\n");
+                output = output.replace(/\n/g, "<br>");
+                output = output.replace(/__CODE_(\d+)__/g, (_, index) => {
+                    const code = codeTokens[Number(index)] || "";
+                    return `<code>${code}</code>`;
+                });
+                output = output.replace(cardNamePattern, (_, name) => createCardMarkup(name));
+                fastReplyPreview.innerHTML = output;
+                initCardTooltips();
+            };
+
+            const closeFastReply = () => {
+                if (!fastReplyPanel || !fastReplyToggle) {
+                    return;
+                }
+                fastReplyPanel.classList.remove("is-open");
+                fastReplyPanel.setAttribute("aria-hidden", "true");
+                fastReplyToggle.setAttribute("aria-expanded", "false");
+                fastReplyToggle.style.display = "";
+            };
+
+            const openFastReply = () => {
+                if (!fastReplyPanel || !fastReplyToggle) {
+                    return;
+                }
+                fastReplyPanel.classList.add("is-open");
+                fastReplyPanel.setAttribute("aria-hidden", "false");
+                fastReplyToggle.setAttribute("aria-expanded", "true");
+                fastReplyToggle.style.display = "none";
+                if (fastReplyContent && mainReplyContent && !fastReplyContent.value) {
+                    fastReplyContent.value = mainReplyContent.value;
+                }
+                renderMarkdownPreview(fastReplyContent?.value || "");
+                fastReplyContent?.focus();
+            };
+
+            if (fastReplyToggle && fastReplyPanel && fastReplyContent) {
+                fastReplyToggle.addEventListener("click", openFastReply);
+                fastReplyClose?.addEventListener("click", closeFastReply);
+                fastReplyContent.addEventListener("input", () => {
+                    renderMarkdownPreview(fastReplyContent.value);
+                });
+                document.addEventListener("keydown", (event) => {
+                    if (event.key === "Escape" && fastReplyPanel.classList.contains("is-open")) {
+                        closeFastReply();
+                    }
+                });
+                fastReplyForm?.addEventListener("submit", () => {
+                    closeFastReply();
+                });
+            }
         });
     </script>
 </body>

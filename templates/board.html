@@ -11,10 +11,10 @@
         .board-title {
             font-size: 1.8em;
             margin-bottom: 5px;
-            color: #343a40;
+            color: var(--color-text-strong);
         }
         .board-meta {
-            color: #6c757d;
+            color: var(--color-text-muted);
             margin-bottom: 20px;
         }
         .threads {
@@ -22,7 +22,7 @@
             padding: 0;
         }
         .thread {
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--color-border-strong);
             padding: 15px 0;
         }
         .thread:last-child {
@@ -37,19 +37,19 @@
         }
         .thread-title {
             font-weight: bold;
-            color: #343a40;
+            color: var(--color-text-strong);
         }
         .thread-date {
-            color: #6c757d;
+            color: var(--color-text-muted);
             font-size: 0.9em;
         }
         .thread-author {
-            color: #6c757d;
+            color: var(--color-text-muted);
             font-size: 0.9em;
         }
         .thread-meta {
             margin-top: 6px;
-            color: #6c757d;
+            color: var(--color-text-muted);
             font-size: 0.85em;
             display: flex;
             flex-wrap: wrap;
@@ -64,8 +64,8 @@
         .thread-tag {
             padding: 2px 8px;
             border-radius: 999px;
-            background: #f1f3f5;
-            color: #2f2f2f;
+            background: var(--color-tag-bg);
+            color: var(--color-tag-text);
             font-size: 0.75em;
             letter-spacing: 0.02em;
         }
@@ -76,18 +76,18 @@
             margin: 12px 0 18px;
         }
         .format-filter {
-            border: 1px solid #ced4da;
-            background: #f8f9fa;
-            color: #495057;
+            border: 1px solid var(--color-filter-border);
+            background: var(--color-filter-bg);
+            color: var(--color-filter-text);
             border-radius: 999px;
             padding: 4px 12px;
             font-size: 0.85em;
             cursor: pointer;
         }
         .format-filter.is-active {
-            background: #e7f5ff;
-            border-color: #74c0fc;
-            color: #1864ab;
+            background: var(--color-filter-active-bg);
+            border-color: var(--color-filter-active-border);
+            color: var(--color-filter-active-text);
         }
         footer {
             margin-top: 40px;

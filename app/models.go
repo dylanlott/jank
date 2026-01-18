@@ -25,11 +25,11 @@ type User struct {
 
 // Thread represents a discussion thread on a board.
 type Thread struct {
-	ID      int       `json:"id"`
-	Title   string    `json:"title"`
-	Author  string    `json:"author"`
-	Posts   []*Post   `json:"posts,omitempty"`
-	Created time.Time `json:"created"`
+	ID         int       `json:"id"`
+	Title      string    `json:"title"`
+	Author     string    `json:"author"`
+	Posts      []*Post   `json:"posts,omitempty"`
+	Created    time.Time `json:"created"`
 	ReplyCount int       `json:"-"`
 	LastBump   time.Time `json:"-"`
 	CardTags   []string  `json:"-"`
@@ -79,12 +79,12 @@ type CardTreeAnnotation struct {
 
 // Post represents an individual post in a thread.
 type Post struct {
-	ID      int       `json:"id"`
-	Author  string    `json:"author"`
-	Content string    `json:"content"`
-	Created time.Time `json:"created"`
-	Number  *big.Int  `json:"number"`
-	Flair   string    `json:"flair"`
+	ID      int         `json:"id"`
+	Author  string      `json:"author"`
+	Content string      `json:"content"`
+	Created time.Time   `json:"created"`
+	Number  *big.Int    `json:"number"`
+	Flair   string      `json:"flair"`
 	Trees   []*CardTree `json:"trees,omitempty"`
 }
 
@@ -107,8 +107,11 @@ type BoardViewData struct {
 // ThreadViewData holds data for the thread.html template.
 type ThreadViewData struct {
 	AuthViewData
-	Thread  *Thread
-	BoardID int
+	Thread                *Thread
+	BoardID               int
+	LastBump              time.Time
+	BumpCooldownRemaining int
+	NecroWarning          bool
 }
 
 // NewThreadViewData holds data for the new_thread.html template.

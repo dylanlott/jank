@@ -2,11 +2,100 @@
         *, *::before, *::after {
             box-sizing: border-box;
         }
+        :root {
+            color-scheme: light;
+            --color-bg: #f4f4f4;
+            --color-surface: #ffffff;
+            --color-surface-alt: #f8f9fb;
+            --color-surface-muted: #f1f3f5;
+            --color-text: #212529;
+            --color-text-strong: #343a40;
+            --color-text-muted: #6c757d;
+            --color-border: #ced4da;
+            --color-border-soft: #e1e4e8;
+            --color-border-softer: #eef1f5;
+            --color-border-strong: #ddd;
+            --color-link: #007bff;
+            --color-link-hover: #0056b3;
+            --color-header-bg: #343a40;
+            --color-header-text: #ffffff;
+            --color-logo-art: #cfd4da;
+            --color-logo-subtitle: #dee2e6;
+            --color-input-bg: #ffffff;
+            --color-input-text: #212529;
+            --color-tooltip-bg: #ffffff;
+            --color-tooltip-text: #343a40;
+            --color-tooltip-border: #dee2e6;
+            --color-shadow: rgba(0, 0, 0, 0.1);
+            --color-danger: #d9534f;
+            --color-success: #28a745;
+            --color-success-hover: #218838;
+            --color-primary: #007bff;
+            --color-primary-hover: #0056b3;
+            --color-accent-soft-bg: #d1ecf1;
+            --color-accent-soft-text: #0c5460;
+            --color-tag-bg: #f1f3f5;
+            --color-tag-text: #2f2f2f;
+            --color-filter-bg: #f8f9fa;
+            --color-filter-text: #495057;
+            --color-filter-border: #ced4da;
+            --color-filter-active-bg: #e7f5ff;
+            --color-filter-active-border: #74c0fc;
+            --color-filter-active-text: #1864ab;
+            --color-tree-line: #cfd4da;
+            --color-tooltip-link: #0b7285;
+            --color-card-bg: #fafbfc;
+        }
+        :root[data-theme="dark"] {
+            color-scheme: dark;
+            --color-bg: #0f1317;
+            --color-surface: #171c22;
+            --color-surface-alt: #1c2229;
+            --color-surface-muted: #20262e;
+            --color-text: #e6edf3;
+            --color-text-strong: #f3f7fa;
+            --color-text-muted: #a5b0bc;
+            --color-border: #2f3842;
+            --color-border-soft: #2a323b;
+            --color-border-softer: #242b33;
+            --color-border-strong: #2b333d;
+            --color-link: #5ab0ff;
+            --color-link-hover: #85c4ff;
+            --color-header-bg: #0b0f13;
+            --color-header-text: #f3f7fa;
+            --color-logo-art: #8d97a3;
+            --color-logo-subtitle: #c2cad3;
+            --color-input-bg: #12171d;
+            --color-input-text: #e6edf3;
+            --color-tooltip-bg: #1d232b;
+            --color-tooltip-text: #e6edf3;
+            --color-tooltip-border: #2f3842;
+            --color-shadow: rgba(0, 0, 0, 0.4);
+            --color-danger: #ff7b7b;
+            --color-success: #37c46a;
+            --color-success-hover: #2fa75a;
+            --color-primary: #5ab0ff;
+            --color-primary-hover: #85c4ff;
+            --color-accent-soft-bg: #103544;
+            --color-accent-soft-text: #a6dff0;
+            --color-tag-bg: #222a33;
+            --color-tag-text: #e4e9ef;
+            --color-filter-bg: #1b222a;
+            --color-filter-text: #c2cbd5;
+            --color-filter-border: #2d3640;
+            --color-filter-active-bg: #12314a;
+            --color-filter-active-border: #2f6fa3;
+            --color-filter-active-text: #9cd3ff;
+            --color-tree-line: #3a4652;
+            --color-tooltip-link: #7ad2e3;
+            --color-card-bg: #1b2128;
+        }
         body {
             font-family: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
+            background-color: var(--color-bg);
+            color: var(--color-text);
             font-size: clamp(0.95rem, 0.9rem + 0.2vw, 1.05rem);
             line-height: 1.5;
         }
@@ -14,59 +103,87 @@
             font-family: "IBM Plex Serif", "Times New Roman", serif;
         }
         header {
-            background-color: #343a40;
-            color: #fff;
-            padding: 18px 20px;
+            background-color: var(--color-header-bg);
+            color: var(--color-header-text);
+            padding: 10px 16px;
             text-align: center;
         }
         .logo {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 18px;
+            gap: 12px;
             flex-wrap: wrap;
         }
         .logo-art {
             margin: 0;
             font-family: "Courier New", Courier, monospace;
-            font-size: 0.75em;
+            font-size: 0.68em;
             line-height: 1.1;
-            color: #cfd4da;
+            color: var(--color-logo-art);
         }
         .logo-text {
             text-align: left;
         }
         .logo-title {
-            font-size: clamp(1.35rem, 1.1rem + 1vw, 1.9rem);
+            font-size: clamp(1.05rem, 0.95rem + 0.6vw, 1.4rem);
             font-weight: 700;
             margin: 0;
         }
         .logo-subtitle {
             margin-top: 4px;
-            font-size: 0.95em;
-            color: #dee2e6;
+            font-size: 0.85em;
+            color: var(--color-logo-subtitle);
             letter-spacing: 0.02em;
         }
         .container {
             width: min(92%, 960px);
             margin: 18px auto;
-            background-color: #fff;
+            background-color: var(--color-surface);
             padding: clamp(14px, 2.6vw, 22px);
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 0 10px var(--color-shadow);
         }
         .auth-bar {
-            text-align: right;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
             margin-bottom: 15px;
-            color: #6c757d;
+            color: var(--color-text-muted);
             font-size: 0.9em;
             line-height: 1.6;
             word-break: break-word;
+        }
+        .auth-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+        .theme-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85em;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .theme-toggle select {
+            background: var(--color-input-bg);
+            color: var(--color-input-text);
+            border: 1px solid var(--color-border);
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.85em;
+            font-family: inherit;
         }
         label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
-            color: #495057;
+            color: var(--color-text-strong);
         }
         input[type="text"],
         input[type="password"],
@@ -74,36 +191,39 @@
             width: 100%;
             padding: 10px;
             margin-bottom: 15px;
-            border: 1px solid #ced4da;
+            border: 1px solid var(--color-border);
             border-radius: 4px;
             font-family: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
             font-size: 1em;
+            background: var(--color-input-bg);
+            color: var(--color-input-text);
         }
         .muted {
-            color: #6c757d;
+            color: var(--color-text-muted);
             font-size: 0.9em;
         }
         .error {
-            color: #d9534f;
+            color: var(--color-danger);
             margin-bottom: 15px;
         }
         footer {
             text-align: center;
             margin-top: 30px;
-            color: #6c757d;
+            color: var(--color-text-muted);
         }
         a {
-            color: #007bff;
+            color: var(--color-link);
             text-decoration: none;
         }
         a:hover {
+            color: var(--color-link-hover);
             text-decoration: underline;
         }
         .mtg-card {
             position: relative;
             display: inline-block;
             font-weight: 600;
-            color: #d9534f;
+            color: var(--color-danger);
             cursor: help;
         }
         .mtg-card-tooltip {
@@ -112,9 +232,9 @@
             bottom: 120%;
             transform: translateX(-50%);
             min-width: 200px;
-            background: #ffffff;
-            color: #343a40;
-            border: 1px solid #dee2e6;
+            background: var(--color-tooltip-bg);
+            color: var(--color-tooltip-text);
+            border: 1px solid var(--color-tooltip-border);
             border-radius: 8px;
             padding: 8px 10px;
             box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
@@ -132,7 +252,7 @@
             transform: translateX(-50%);
             border-width: 6px;
             border-style: solid;
-            border-color: #ffffff transparent transparent transparent;
+            border-color: var(--color-tooltip-bg) transparent transparent transparent;
         }
         .mtg-card:hover .mtg-card-tooltip {
             display: block;
@@ -152,10 +272,10 @@
             height: auto;
             border-radius: 6px;
             margin: 6px auto 8px;
-            background: #f1f3f5;
+            background: var(--color-surface-muted);
         }
         .mtg-card-tooltip-image.is-loading {
-            background: linear-gradient(110deg, #eef1f4 8%, #f8fafc 18%, #eef1f4 33%);
+            background: linear-gradient(110deg, var(--color-surface-muted) 8%, var(--color-surface-alt) 18%, var(--color-surface-muted) 33%);
             background-size: 200% 100%;
             animation: card-skeleton 1.2s linear infinite;
         }
@@ -167,7 +287,7 @@
         .mtg-card-tooltip-loading {
             display: block;
             font-size: 0.75em;
-            color: #6c757d;
+            color: var(--color-text-muted);
             text-align: center;
             margin: 6px 0;
         }
@@ -177,7 +297,7 @@
             justify-content: center;
         }
         .mtg-card-tooltip-links a {
-            color: #0b7285;
+            color: var(--color-tooltip-link);
             font-weight: 600;
         }
         .profile-header {
@@ -185,34 +305,34 @@
         }
         .profile-header h2 {
             margin: 0 0 5px 0;
-            color: #343a40;
+            color: var(--color-text-strong);
         }
         .meta {
-            color: #6c757d;
+            color: var(--color-text-muted);
         }
         .section {
             margin-top: 25px;
         }
         .section h3 {
             margin-bottom: 10px;
-            color: #343a40;
+            color: var(--color-text-strong);
         }
         .tree-builder {
-            border: 1px dashed #cfd4da;
+            border: 1px dashed var(--color-border);
             padding: 12px;
             margin: 15px 0;
             border-radius: 6px;
-            background: #f8f9fb;
+            background: var(--color-surface-alt);
         }
         .tree-builder-hidden {
             display: none;
         }
         .tree-block {
-            border: 1px solid #e1e4e8;
+            border: 1px solid var(--color-border-soft);
             border-radius: 6px;
             padding: 10px;
             margin-top: 12px;
-            background: #fff;
+            background: var(--color-surface);
         }
         .tree-block-header {
             display: flex;
@@ -223,11 +343,11 @@
             font-weight: 600;
         }
         .tree-node {
-            border: 1px solid #e6e9ee;
+            border: 1px solid var(--color-border-soft);
             border-radius: 6px;
             padding: 10px;
             margin-top: 10px;
-            background: #fdfdff;
+            background: var(--color-surface);
         }
         .tree-node-header {
             display: flex;
@@ -240,11 +360,11 @@
             list-style-type: none;
         }
         .tree-node-annotation {
-            border: 1px solid #eef1f5;
+            border: 1px solid var(--color-border-softer);
             border-radius: 6px;
             padding: 8px;
             margin-top: 6px;
-            background: #fff;
+            background: var(--color-surface);
         }
         .tree-builder-actions {
             display: flex;
@@ -257,7 +377,7 @@
             padding: 0;
         }
         .list-item {
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--color-border-strong);
             padding: 12px 0;
         }
         .list-item:last-child {
@@ -265,10 +385,10 @@
         }
         .item-title {
             font-weight: bold;
-            color: #343a40;
+            color: var(--color-text-strong);
         }
         .item-meta {
-            color: #6c757d;
+            color: var(--color-text-muted);
             font-size: 0.9em;
             margin-top: 4px;
         }
@@ -278,22 +398,37 @@
         }
         @media (max-width: 900px) {
             header {
-                padding: 16px 14px;
+                padding: 10px 12px;
             }
             .logo {
-                gap: 12px;
+                gap: 10px;
             }
             .logo-text {
                 text-align: center;
             }
             .logo-art {
-                font-size: 0.7em;
+                font-size: 0.62em;
             }
             .auth-bar {
-                text-align: left;
+                justify-content: flex-start;
             }
         }
         @media (max-width: 600px) {
+            header {
+                padding: 8px 10px;
+            }
+            .logo {
+                gap: 8px;
+            }
+            .logo-art {
+                font-size: 0.58em;
+            }
+            .logo-title {
+                font-size: clamp(0.95rem, 0.85rem + 0.8vw, 1.2rem);
+            }
+            .logo-subtitle {
+                font-size: 0.78em;
+            }
             .container {
                 width: 94%;
                 margin: 14px auto;
@@ -317,6 +452,54 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600;700&display=swap" />
+    <script>
+        (() => {
+            const storageKey = "jank-theme";
+            const root = document.documentElement;
+
+            const readStoredTheme = () => {
+                try {
+                    const value = localStorage.getItem(storageKey);
+                    return value === "light" || value === "dark" ? value : null;
+                } catch (error) {
+                    return null;
+                }
+            };
+
+            const getPreferredTheme = () => {
+                const stored = readStoredTheme();
+                if (stored) {
+                    return stored;
+                }
+                return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                    ? "dark"
+                    : "light";
+            };
+
+            const applyTheme = (theme) => {
+                root.setAttribute("data-theme", theme);
+            };
+
+            applyTheme(getPreferredTheme());
+
+            document.addEventListener("DOMContentLoaded", () => {
+                const selector = document.querySelector("[data-theme-selector]");
+                if (!selector) {
+                    return;
+                }
+                selector.value = root.getAttribute("data-theme") || "light";
+                selector.addEventListener("change", (event) => {
+                    const nextTheme = event.target.value;
+                    applyTheme(nextTheme);
+                    try {
+                        localStorage.setItem(storageKey, nextTheme);
+                    } catch (error) {
+                        // Ignore storage failures (private mode, etc.).
+                    }
+                });
+            });
+        })();
+    </script>
 {{end}}
 
 {{define "site_header"}}
@@ -340,14 +523,23 @@
 
 {{define "auth_bar"}}
         <div class="auth-bar">
-            <a href="/">Home</a> ·
-            <a href="/user">Profiles</a> ·
-            {{if .IsAuthenticated}}
-                User: <a href="/profile">{{.Username}}</a> · <a href="/logout?next={{.CurrentPath | urlquery}}">Log out</a>
-            {{else}}
-                <a href="/login?next={{.CurrentPath | urlquery}}">Log in</a> ·
-                <a href="/signup?next={{.CurrentPath | urlquery}}">Sign up</a>
-            {{end}}
+            <div class="auth-links">
+                <a href="/">Home</a> ·
+                <a href="/user">Profiles</a> ·
+                {{if .IsAuthenticated}}
+                    User: <a href="/profile">{{.Username}}</a> · <a href="/logout?next={{.CurrentPath | urlquery}}">Log out</a>
+                {{else}}
+                    <a href="/login?next={{.CurrentPath | urlquery}}">Log in</a> ·
+                    <a href="/signup?next={{.CurrentPath | urlquery}}">Sign up</a>
+                {{end}}
+            </div>
+            <label class="theme-toggle">
+                Theme
+                <select data-theme-selector aria-label="Theme selector">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
+            </label>
         </div>
 {{end}}
 
