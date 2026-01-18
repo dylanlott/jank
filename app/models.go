@@ -30,6 +30,7 @@ type Thread struct {
 	Author     string    `json:"author"`
 	Posts      []*Post   `json:"posts,omitempty"`
 	Created    time.Time `json:"created"`
+	Tags       []string  `json:"tags,omitempty"`
 	ReplyCount int       `json:"-"`
 	LastBump   time.Time `json:"-"`
 	CardTags   []string  `json:"-"`

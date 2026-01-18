@@ -143,7 +143,7 @@ func threadsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Printf("created thread %+v", &thread)
 
-		insertedThread, err := createThread(db, boardID, thread.Title, username)
+		insertedThread, err := createThread(db, boardID, thread.Title, username, thread.Tags)
 		if err != nil {
 			log.Errorf("Failed to create thread: %v", err)
 			http.Error(w, "Failed to create thread", http.StatusInternalServerError)

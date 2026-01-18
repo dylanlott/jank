@@ -17,6 +17,21 @@
             color: var(--color-text-muted);
             margin-bottom: 20px;
         }
+        .thread-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .thread-tag {
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: var(--color-tag-bg);
+            color: var(--color-tag-text);
+            font-size: 0.75em;
+            letter-spacing: 0.02em;
+            text-transform: lowercase;
+        }
         .posts {
             list-style-type: none;
             padding: 0;
@@ -38,6 +53,20 @@
         .post-author {
             font-weight: bold;
             color: var(--color-text-strong);
+        }
+        .post-op-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(60, 245, 177, 0.5);
+            color: var(--color-link);
+            font-size: 0.7em;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .post-op .post-author {
+            color: var(--color-link);
         }
         .post-date {
             color: var(--color-text-muted);
@@ -530,33 +559,45 @@
         <div class="thread-meta">
             Created on: {{.Thread.Created.Format "Jan 2, 2006 at 3:04pm"}}
             {{if .Thread.Author}} · Started by <a href="/user/{{.Thread.Author | urlquery}}">{{.Thread.Author}}</a>{{end}}
+            {{if .Thread.Tags}}
+                <div class="thread-tags">
+                    {{range .Thread.Tags}}
+                        <span class="thread-tag">#{{.}}</span>
+                    {{end}}
+                </div>
+            {{end}}
         </div>
 
         <ul class="posts">
             {{if .Thread.Posts}}
-                {{range .Thread.Posts}}
-                    <li class="post {{if .IsDeleted}}post-deleted{{end}}" id="post-{{.ID}}" data-post-id="{{.ID}}">
+                {{range $index, $post := .Thread.Posts}}
+                    <li class="post {{if $post.IsDeleted}}post-deleted{{end}} {{if eq $index 0}}post-op{{end}}" id="post-{{$post.ID}}" data-post-id="{{$post.ID}}">
                         <div class="post-header">
-                            <div class="post-author">{{.Author}}</div>
-                            <div class="post-date">{{.Created.Format "Jan 2, 2006 at 3:04pm"}}</div>
+                            <div class="post-author">
+                                {{$post.Author}}
+                                {{if eq $index 0}}
+                                    <span class="post-op-badge">OP</span>
+                                {{end}}
+                            </div>
+                            <div class="post-date">{{$post.Created.Format "Jan 2, 2006 at 3:04pm"}}</div>
                         </div>
-                        <div class="post-content" data-deleted="{{.IsDeleted}}">{{- if .IsDeleted -}}
+                        <div class="post-content" data-deleted="{{$post.IsDeleted}}">{{- if $post.IsDeleted -}}
                                 <div class="post-deleted-message">Post removed by moderation.</div>
-                                {{- if .DeletedReason -}}
-                                    <div class="post-deleted-note">Reason: {{.DeletedReason}}</div>
+                                {{- if $post.DeletedReason -}}
+                                    <div class="post-deleted-note">Reason: {{$post.DeletedReason}}</div>
                                 {{- end -}}
-                                {{- if .DeletedAt -}}
-                                    <div class="post-deleted-note">Removed on {{.DeletedAt.Format "Jan 2, 2006 at 3:04pm"}}{{if .DeletedBy}} by {{.DeletedBy}}{{end}}.</div>
+                                {{- if $post.DeletedAt -}}
+                                    <div class="post-deleted-note">Removed on {{$post.DeletedAt.Format "Jan 2, 2006 at 3:04pm"}}{{if $post.DeletedBy}} by {{$post.DeletedBy}}{{end}}.</div>
                                 {{- end -}}
                             {{- else -}}
-                                {{- .Content -}}
+                                {{- $post.Content -}}
                             {{- end -}}</div>
-                        {{if .IsDeleted}}
+                        {{if $post.IsDeleted}}
                         {{else}}
-                            {{if .Trees}}
+                            {{if $post.Trees}}
                                 <div class="card-trees">
                                     <!-- <h3>Card Trees</h3> -->
-                                    {{range .Trees}}
+                                    {{range $post.Trees}}
                                         <div class="card-tree">
                                             <div class="card-tree-header">
                                                 <div class="card-tree-title">{{.Title}}</div>
@@ -600,46 +641,46 @@
                                 </div>
                             {{end}}
                         {{end}}
-                        <div class="post-number">post ID: {{.Number}}</div>
+                        <div class="post-number">post ID: {{$post.Number}}</div>
                         <div class="post-links">
-                            <a class="post-anchor" href="#post-{{.ID}}">&gt;&gt;{{.ID}}</a>
-                            <span class="post-backlinks" data-backlinks-for="{{.ID}}"></span>
+                            <a class="post-anchor" href="#post-{{$post.ID}}">&gt;&gt;{{$post.ID}}</a>
+                            <span class="post-backlinks" data-backlinks-for="{{$post.ID}}"></span>
                         </div>
                         {{if or $.IsAuthenticated $.IsModerator}}
                             <div class="post-actions">
-                                {{if and $.IsAuthenticated (not .IsDeleted)}}
+                                {{if and $.IsAuthenticated (not $post.IsDeleted)}}
                                     <details class="post-report">
                                         <summary>Report</summary>
-                                        <form method="POST" action="/report/post/{{.ID}}">
-                                            <label for="report-category-{{.ID}}">Category</label>
-                                            <select id="report-category-{{.ID}}" name="category" required>
+                                        <form method="POST" action="/report/post/{{$post.ID}}">
+                                            <label for="report-category-{{$post.ID}}">Category</label>
+                                            <select id="report-category-{{$post.ID}}" name="category" required>
                                                 <option value="" disabled selected>Pick a category</option>
                                                 {{range $.ReportCategories}}
                                                     <option value="{{.}}">{{.}}</option>
                                                 {{end}}
                                             </select>
-                                            <label for="report-reason-{{.ID}}">Details (optional)</label>
-                                            <textarea id="report-reason-{{.ID}}" name="reason" rows="3" placeholder="Tell us what happened."></textarea>
+                                            <label for="report-reason-{{$post.ID}}">Details (optional)</label>
+                                            <textarea id="report-reason-{{$post.ID}}" name="reason" rows="3" placeholder="Tell us what happened."></textarea>
                                             <button type="submit">Send report</button>
                                         </form>
                                     </details>
                                 {{end}}
-                                {{if and $.IsModerator (not .IsDeleted)}}
+                                {{if and $.IsModerator (not $post.IsDeleted)}}
                                     <details class="danger">
                                         <summary>Remove</summary>
-                                        <form method="POST" action="/mod/posts/{{.ID}}/delete">
+                                        <form method="POST" action="/mod/posts/{{$post.ID}}/delete">
                                             <input type="hidden" name="next" value="{{$.CurrentPath}}">
-                                            <label for="delete-reason-{{.ID}}">Removal reason</label>
-                                            <input id="delete-reason-{{.ID}}" name="reason" type="text" placeholder="Required" required />
+                                            <label for="delete-reason-{{$post.ID}}">Removal reason</label>
+                                            <input id="delete-reason-{{$post.ID}}" name="reason" type="text" placeholder="Required" required />
                                             <button type="submit">Soft delete</button>
                                         </form>
                                     </details>
                                 {{end}}
                             </div>
                         {{end}}
-                        <div class="post-flair" data-flair="{{.Flair}}" data-number="{{.Number}}">
+                        <div class="post-flair" data-flair="{{$post.Flair}}" data-number="{{$post.Number}}">
                             <span class="post-flair-label">flair</span>
-                            <span class="post-flair-badge">{{.Flair}}</span>
+                            <span class="post-flair-badge">{{$post.Flair}}</span>
                         </div>
                     </li>
                 {{end}}

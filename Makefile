@@ -1,4 +1,4 @@
-.PHONY: help build run run-sqlite test fmt tidy clean
+.PHONY: help build run run-sqlite test fmt tidy clean backup-db
 
 BINARY_NAME := jank
 BIN_DIR := bin
@@ -12,6 +12,7 @@ help:
 	@printf "  test         Run Go tests\n"
 	@printf "  fmt          Format Go sources\n"
 	@printf "  tidy         Tidy Go modules\n"
+	@printf "  backup-db    Backup the configured database\n"
 	@printf "  clean        Remove build artifacts\n"
 
 build:
@@ -32,6 +33,9 @@ fmt:
 
 tidy:
 	go mod tidy
+
+backup-db:
+	bash ./scripts/backup_db.sh
 
 clean:
 	rm -rf "$(BIN_DIR)"

@@ -163,13 +163,14 @@ func serveNewThread(w http.ResponseWriter, r *http.Request) {
 			renderErrorPage(w, r, http.StatusBadRequest, "Missing Title", "Thread title cannot be empty.", fmt.Sprintf("/view/board/newthread/%d", boardID))
 			return
 		}
+		tags := parseTagsInput(r.FormValue("tags"))
 		content := strings.TrimSpace(r.FormValue("content"))
 		if content == "" {
 			renderErrorPage(w, r, http.StatusBadRequest, "Missing Post", "Thread content cannot be empty.", fmt.Sprintf("/view/board/newthread/%d", boardID))
 			return
 		}
 
-		thread, err := createThread(db, boardID, title, username)
+		thread, err := createThread(db, boardID, title, username, tags)
 		if err != nil {
 			log.Errorf("Failed to create thread: %v", err)
 			renderErrorPage(w, r, http.StatusInternalServerError, "Create Thread Failed", "We couldn't create that thread. Please try again.", fmt.Sprintf("/view/board/%d", boardID))

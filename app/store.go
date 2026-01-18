@@ -47,6 +47,7 @@ func migrateSQLite(db *sql.DB) error {
 		board_id INTEGER NOT NULL,
 		title TEXT NOT NULL,
 		author TEXT,
+		tags TEXT,
 		created DATETIME NOT NULL,
 		FOREIGN KEY (board_id) REFERENCES boards(id)
 	);`
@@ -130,6 +131,9 @@ func migrateSQLite(db *sql.DB) error {
 	if err := ensureThreadsAuthorColumn(db); err != nil {
 		return err
 	}
+	if err := ensureThreadsTagsColumn(db); err != nil {
+		return err
+	}
 	if _, err := db.Exec(postsStmt); err != nil {
 		return err
 	}
@@ -177,6 +181,7 @@ func migratePostgres(db *sql.DB) error {
 		board_id INTEGER NOT NULL REFERENCES boards(id),
 		title TEXT NOT NULL,
 		author TEXT,
+		tags TEXT,
 		created TIMESTAMP NOT NULL
 	);`
 	postsStmt := `
@@ -253,6 +258,9 @@ func migratePostgres(db *sql.DB) error {
 	if err := ensureThreadsAuthorColumn(db); err != nil {
 		return err
 	}
+	if err := ensureThreadsTagsColumn(db); err != nil {
+		return err
+	}
 	if _, err := db.Exec(postsStmt); err != nil {
 		return err
 	}
@@ -305,6 +313,18 @@ func ensureThreadsAuthorColumn(db *sql.DB) error {
 	lower := strings.ToLower(err.Error())
 	if strings.Contains(lower, "duplicate column") || strings.Contains(lower, "already exists") {
 		_, _ = db.Exec(`UPDATE threads SET author = '' WHERE author IS NULL`)
+		return nil
+	}
+	return err
+}
+
+func ensureThreadsTagsColumn(db *sql.DB) error {
+	_, err := db.Exec(`ALTER TABLE threads ADD COLUMN tags TEXT`)
+	if err == nil {
+		return nil
+	}
+	lower := strings.ToLower(err.Error())
+	if strings.Contains(lower, "duplicate column") || strings.Contains(lower, "already exists") {
 		return nil
 	}
 	return err
@@ -583,23 +603,24 @@ func authenticateUser(db *sql.DB, username, password string) bool {
 }
 
 // createThread inserts a new thread into the database.
-func createThread(db *sql.DB, boardID int, title, author string) (*Thread, error) {
+func createThread(db *sql.DB, boardID int, title, author string, tags []string) (*Thread, error) {
 	now := time.Now()
 	var id int
+	tagString := strings.Join(normalizeTags(tags), ",")
 	if dbDriver == "pgx" {
 		err := db.QueryRow(`
-		INSERT INTO threads (board_id, title, author, created) 
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO threads (board_id, title, author, tags, created) 
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id`,
-			boardID, title, author, now).Scan(&id)
+			boardID, title, author, tagString, now).Scan(&id)
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		result, err := db.Exec(`
-		INSERT INTO threads (board_id, title, author, created) 
-		VALUES ($1, $2, $3, $4)`,
-			boardID, title, author, now)
+		INSERT INTO threads (board_id, title, author, tags, created) 
+		VALUES ($1, $2, $3, $4, $5)`,
+			boardID, title, author, tagString, now)
 		if err != nil {
 			return nil, err
 		}
@@ -616,13 +637,14 @@ func createThread(db *sql.DB, boardID int, title, author string) (*Thread, error
 		Author:  author,
 		Posts:   []*Post{},
 		Created: now,
+		Tags:    normalizeTags(tags),
 	}, nil
 }
 
 // getThreadsByBoardID retrieves all threads for a specific board, optionally loading their posts.
 func getThreadsByBoardID(db *sql.DB, boardID int, loadPosts bool) ([]*Thread, error) {
 	rows, err := db.Query(`
-		SELECT id, title, author, created
+		SELECT id, title, author, tags, created
 		FROM threads
 		WHERE board_id = $1
 		ORDER BY created DESC`, boardID)
@@ -635,10 +657,12 @@ func getThreadsByBoardID(db *sql.DB, boardID int, loadPosts bool) ([]*Thread, er
 	for rows.Next() {
 		var t Thread
 		var author sql.NullString
-		if err := rows.Scan(&t.ID, &t.Title, &author, &t.Created); err != nil {
+		var tagString sql.NullString
+		if err := rows.Scan(&t.ID, &t.Title, &author, &tagString, &t.Created); err != nil {
 			return nil, err
 		}
 		t.Author = author.String
+		t.Tags = tagsFromString(tagString.String)
 
 		if loadPosts {
 			posts, err := getPostsByThreadID(db, t.ID)
@@ -657,14 +681,16 @@ func getThreadByID(db *sql.DB, threadID int) (*Thread, int, error) {
 	var t Thread
 	var boardID int
 	var author sql.NullString
-	err := db.QueryRow(`SELECT id, board_id, title, author, created FROM threads WHERE id = $1`, threadID).
-		Scan(&t.ID, &boardID, &t.Title, &author, &t.Created)
+	var tagString sql.NullString
+	err := db.QueryRow(`SELECT id, board_id, title, author, tags, created FROM threads WHERE id = $1`, threadID).
+		Scan(&t.ID, &boardID, &t.Title, &author, &tagString, &t.Created)
 	if err == sql.ErrNoRows {
 		return nil, 0, fmt.Errorf("thread not found")
 	} else if err != nil {
 		return nil, 0, err
 	}
 	t.Author = author.String
+	t.Tags = tagsFromString(tagString.String)
 
 	posts, err := getPostsByThreadID(db, threadID)
 	if err != nil {

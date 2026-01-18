@@ -223,7 +223,7 @@ func TestReportsAPIModerationFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create board: %v", err)
 	}
-	thread, err := createThread(db, board.ID, "hello", "alice")
+	thread, err := createThread(db, board.ID, "hello", "alice", []string{"edh"})
 	if err != nil {
 		t.Fatalf("create thread: %v", err)
 	}

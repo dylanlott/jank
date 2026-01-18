@@ -68,6 +68,20 @@
             color: var(--color-tag-text);
             font-size: 0.75em;
             letter-spacing: 0.02em;
+            text-transform: lowercase;
+        }
+        .thread-card-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .thread-card-tag {
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: var(--color-surface-muted);
+            color: var(--color-text-muted);
+            font-size: 0.75em;
+            letter-spacing: 0.02em;
         }
         .format-filters {
             display: flex;
@@ -146,10 +160,17 @@
                     <div class="thread-meta">
                         <span>Replies: {{.ReplyCount}}</span>
                         <span>Last bump: {{.LastBump.Format "Jan 2, 2006 at 3:04pm"}}</span>
-                        {{if .CardTags}}
+                        {{if .Tags}}
                             <span class="thread-tags">
+                                {{range .Tags}}
+                                    <span class="thread-tag">#{{.}}</span>
+                                {{end}}
+                            </span>
+                        {{end}}
+                        {{if .CardTags}}
+                            <span class="thread-card-tags">
                                 {{range .CardTags}}
-                                    <span class="thread-tag">[[ {{.}} ]]</span>
+                                    <span class="thread-card-tag">[[ {{.}} ]]</span>
                                 {{end}}
                             </span>
                         {{end}}
@@ -173,6 +194,7 @@
             const threadTitles = document.querySelectorAll('.thread-title a');
             const boardTitle = document.querySelector('.board-title');
             const boardMeta = document.querySelector('.board-meta');
+            const threadCardTags = document.querySelectorAll('.thread-card-tag');
             const cardNamePattern = /\[\[([^\]]+)\]\]/g;
 
             const createCardMarkup = (name) => {
@@ -191,6 +213,10 @@
             if (boardMeta) {
                 boardMeta.innerHTML = boardMeta.innerHTML.replace(cardNamePattern, (_, name) => createCardMarkup(name));
             }
+
+            threadCardTags.forEach(tag => {
+                tag.innerHTML = tag.innerHTML.replace(cardNamePattern, (_, name) => createCardMarkup(name));
+            });
 
             const cardImageCache = new Map();
 
@@ -329,7 +355,7 @@
 
                 threads.forEach(thread => {
                     const tags = Array.from(thread.querySelectorAll(".thread-tag")).map(tag => {
-                        return tag.textContent.replace(/\[\[|\]\]/g, "").trim().toLowerCase();
+                        return tag.textContent.replace(/[#\[\]]/g, "").trim().toLowerCase();
                     });
                     const formats = new Set();
                     tags.forEach(tag => {

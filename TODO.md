@@ -7,8 +7,15 @@
 - [ ] Format filters: quick toggles for Standard/Modern/EDH/Pioneer formats.
 - [x] Bump limiter: soft cooldown + bump warning for necro posts.
 - [x] Post tools: inline quote/anchor linking with >>123 and backlink map.
-- [ ] Flair auto-rarity: use post ID suffix to emit rare foil glows, give OP a gold ring.
+- [x] Flair auto-rarity: use post ID suffix to emit rare foil glows, give OP a gold ring.
 - [ ] Archive mode: lock old threads but keep searchable via tags.
-- [ ] Minimal mod tools: soft-delete with reason, report queue with categories.
+- [x] Minimal mod tools: soft-delete with reason, report queue with categories.
 - [ ] Add a thread and board search functionality with sqlite3 fuzzy search.
 - [ ] Add a simple vote mechanism for threads and replies 
+- [ ] Fix Makefile run target to avoid forcing SQLite or update help text to match behavior.
+- [ ] Improve SQLite backups with `sqlite3 .backup` to avoid corrupted copies.
+- [ ] Document moderation API endpoints in README.md.
+- [ ] Add tag limits (count/length) and enforce in handlers.
+- [ ] Add stricter validation for report categories (DB-level or shared validation).
+- [ ] Document thread tags usage in README.md examples.
+- [ ] Handle JSON encoding errors in `respondJSON`.
