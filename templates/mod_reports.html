@@ -113,7 +113,7 @@
                         </div>
                         <div class="report-body">
                             <div class="muted">Post by {{.PostAuthor}} on {{.PostCreated.Format "Jan 2, 2006 at 3:04pm"}}{{if .PostDeleted}} · removed{{end}}</div>
-                            <div class="report-content">{{if .PostContent}}{{.PostContent}}{{else}}(no content){{end}}</div>
+                            <div class="report-content">{{if .PostContent}}{{markdown .PostContent}}{{else}}(no content){{end}}</div>
                             {{if .PostDeletedReason}}
                                 <div class="report-note">Removal reason: {{.PostDeletedReason}}</div>
                             {{end}}

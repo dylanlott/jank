@@ -861,6 +861,13 @@ func getThreadsByBoardID(db *sql.DB, boardID int, loadPosts bool) ([]*Thread, er
 				return nil, err
 			}
 			t.Posts = posts
+			for _, post := range posts {
+				if strings.TrimSpace(post.Content) == "" {
+					continue
+				}
+				t.Excerpt = makeExcerpt(post.Content, 180)
+				break
+			}
 		}
 		threads = append(threads, &t)
 	}

@@ -590,7 +590,7 @@
                                     <div class="post-deleted-note">Removed on {{$post.DeletedAt.Format "Jan 2, 2006 at 3:04pm"}}{{if $post.DeletedBy}} by {{$post.DeletedBy}}{{end}}.</div>
                                 {{- end -}}
                             {{- else -}}
-                                {{- $post.Content -}}
+                                {{- markdown $post.Content -}}
                             {{- end -}}</div>
                         {{if $post.IsDeleted}}
                         {{else}}

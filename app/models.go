@@ -34,6 +34,7 @@ type Thread struct {
 	ReplyCount int       `json:"-"`
 	LastBump   time.Time `json:"-"`
 	CardTags   []string  `json:"-"`
+	Excerpt    string    `json:"excerpt,omitempty"`
 }
 
 // ThreadSearchResult represents a thread search hit with board context.

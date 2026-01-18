@@ -56,6 +56,15 @@
             gap: 8px;
             align-items: center;
         }
+        .thread-excerpt {
+            margin: 6px 0 2px;
+            color: var(--color-text-muted);
+            font-size: 0.9em;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
         .thread-tags {
             display: flex;
             flex-wrap: wrap;
@@ -157,6 +166,9 @@
                     {{if .Author}}
                         <div class="thread-author">Started by <a href="/user/{{.Author | urlquery}}">{{.Author}}</a></div>
                     {{end}}
+                    {{if .Excerpt}}
+                        <div class="thread-excerpt">{{.Excerpt}}</div>
+                    {{end}}
                     <div class="thread-meta">
                         <span>Replies: {{.ReplyCount}}</span>
                         <span>Last bump: {{.LastBump.Format "Jan 2, 2006 at 3:04pm"}}</span>
@@ -195,6 +207,7 @@
             const boardTitle = document.querySelector('.board-title');
             const boardMeta = document.querySelector('.board-meta');
             const threadCardTags = document.querySelectorAll('.thread-card-tag');
+            const threadExcerpts = document.querySelectorAll('.thread-excerpt');
             const cardNamePattern = /\[\[([^\]]+)\]\]/g;
 
             const createCardMarkup = (name) => {
@@ -216,6 +229,10 @@
 
             threadCardTags.forEach(tag => {
                 tag.innerHTML = tag.innerHTML.replace(cardNamePattern, (_, name) => createCardMarkup(name));
+            });
+
+            threadExcerpts.forEach(excerpt => {
+                excerpt.innerHTML = excerpt.innerHTML.replace(cardNamePattern, (_, name) => createCardMarkup(name));
             });
 
             const cardImageCache = new Map();

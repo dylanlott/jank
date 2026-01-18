@@ -79,3 +79,21 @@ func tagsFromString(raw string) []string {
 	parts := strings.Split(raw, ",")
 	return normalizeTags(parts)
 }
+
+func makeExcerpt(content string, limit int) string {
+	if limit <= 0 {
+		return ""
+	}
+	trimmed := strings.TrimSpace(content)
+	if trimmed == "" {
+		return ""
+	}
+	compact := strings.Join(strings.Fields(trimmed), " ")
+	if utf8.RuneCountInString(compact) <= limit {
+		return compact
+	}
+	if limit <= 3 {
+		return string([]rune(compact)[:limit])
+	}
+	return string([]rune(compact)[:limit-3]) + "..."
+}

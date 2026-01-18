@@ -61,7 +61,10 @@ func openDatabase() (*sql.DB, error) {
 }
 
 func parseTemplates(fs embed.FS) (*template.Template, error) {
-	return template.ParseFS(fs, "templates/*.html")
+	funcs := template.FuncMap{
+		"markdown": renderMarkdown,
+	}
+	return template.New("base").Funcs(funcs).ParseFS(fs, "templates/*.html")
 }
 
 // ------------------- Auth Config -------------------

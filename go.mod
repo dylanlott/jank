@@ -7,6 +7,7 @@ require (
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/sirupsen/logrus v1.9.3
+	github.com/yuin/goldmark v1.7.16
 )
 
 require (
