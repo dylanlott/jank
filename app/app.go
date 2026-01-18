@@ -61,10 +61,11 @@ func Run(templatesFS embed.FS) error {
 	}
 
 	r := buildRouter()
-	log.Info("Server listening on http://localhost:8080")
+	addr, logURL := serverAddr()
+	log.Infof("Server listening on %s", logURL)
 
 	srv := &http.Server{
-		Addr:    ":8080",
+		Addr:    addr,
 		Handler: r,
 	}
 

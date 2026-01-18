@@ -136,6 +136,8 @@
 <body>
     {{template "site_header" (printf "/jank%s" .Board.Name)}}
 
+    {{template "klaxon_banner" .}}
+
     <div class="container">
         {{template "auth_bar" .}}
         <div class="board-title">{{.Board.Name}} (Board #{{.Board.ID}})</div>

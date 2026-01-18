@@ -13,6 +13,7 @@ func buildRouter() *mux.Router {
 	r.HandleFunc("/view/thread/{threadID:[0-9]+}/post", serveThreadView).Methods("POST")
 	r.HandleFunc("/report/post/{postID:[0-9]+}", reportPostHandler).Methods("POST")
 	r.HandleFunc("/mod/reports", serveModReports).Methods("GET")
+	r.HandleFunc("/mod/klaxon", serveKlaxonAdmin).Methods("GET", "POST")
 	r.HandleFunc("/mod/reports/{reportID:[0-9]+}/resolve", resolveReportHandler).Methods("POST")
 	r.HandleFunc("/mod/posts/{postID:[0-9]+}/delete", deletePostHandler).Methods("POST")
 	r.HandleFunc("/login", serveLogin).Methods("GET", "POST")

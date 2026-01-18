@@ -16,11 +16,16 @@ import (
 
 func getAuthViewData(r *http.Request) AuthViewData {
 	username, ok := getAuthenticatedUsername(r)
+	klaxon, err := getKlaxon(db)
+	if err != nil {
+		log.Warnf("Failed to load klaxon: %v", err)
+	}
 	return AuthViewData{
 		IsAuthenticated: ok,
 		Username:        username,
 		CurrentPath:     r.URL.RequestURI(),
 		IsModerator:     isModerator(username),
+		Klaxon:          klaxon,
 	}
 }
 

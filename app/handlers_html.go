@@ -399,6 +399,65 @@ func serveModReports(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func serveKlaxonAdmin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodPost {
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")
+		return
+	}
+	if !requireModerator(w, r) {
+		return
+	}
+
+	var message string
+	var success string
+
+	if r.Method == http.MethodPost {
+		if err := r.ParseForm(); err != nil {
+			renderErrorPage(w, r, http.StatusBadRequest, "Invalid Form", "We couldn't read that klaxon update.", "/mod/klaxon")
+			return
+		}
+		if r.FormValue("clear") != "" {
+			if err := saveKlaxon(db, "", "", "", time.Now()); err != nil {
+				log.Errorf("Failed to clear klaxon: %v", err)
+				message = "Failed to clear the klaxon."
+			} else {
+				success = "Klaxon cleared."
+			}
+		} else {
+			tone := r.FormValue("tone")
+			emoji := r.FormValue("emoji")
+			body := strings.TrimSpace(r.FormValue("message"))
+			if body == "" {
+				message = "Klaxon message cannot be empty."
+			} else if err := saveKlaxon(db, tone, emoji, body, time.Now()); err != nil {
+				log.Errorf("Failed to save klaxon: %v", err)
+				message = "Failed to save the klaxon."
+			} else {
+				success = "Klaxon updated."
+			}
+		}
+	}
+
+	klaxon, err := getKlaxon(db)
+	if err != nil {
+		log.Errorf("Failed to load klaxon: %v", err)
+		renderErrorPage(w, r, http.StatusInternalServerError, "Klaxon Unavailable", "We couldn't load the klaxon settings.", "/")
+		return
+	}
+
+	authData := getAuthViewData(r)
+	data := KlaxonAdminViewData{
+		AuthViewData: authData,
+		Klaxon:       klaxon,
+		Error:        message,
+		Success:      success,
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "mod_klaxon.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 func resolveReportHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")

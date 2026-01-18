@@ -553,6 +553,8 @@
 <body>
     {{template "site_header" .Thread.Title}}
 
+    {{template "klaxon_banner" .}}
+
     <div class="container">
         {{template "auth_bar" .}}
         <div class="thread-title">{{.Thread.Title}} (Thread #{{.Thread.ID}})</div>

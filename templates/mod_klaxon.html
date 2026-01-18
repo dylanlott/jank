@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {{template "shared_head"}}
+    <style>
+        {{template "shared_styles"}}
+        .klaxon-form {
+            display: grid;
+            gap: 12px;
+        }
+        .klaxon-form select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            font-family: "Space Grotesk", "IBM Plex Sans", "Helvetica Neue", sans-serif;
+            font-size: 1em;
+            background: var(--color-input-bg);
+            color: var(--color-input-text);
+        }
+        .klaxon-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .status-message {
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+            background: var(--color-surface-alt);
+        }
+        .status-message.error {
+            border-color: rgba(255, 123, 92, 0.5);
+            color: var(--color-danger);
+        }
+        .status-message.success {
+            border-color: rgba(53, 212, 138, 0.5);
+            color: var(--color-success);
+        }
+    </style>
+</head>
+<body>
+    {{template "site_header" "/jank/ klaxon"}}
+
+    {{template "klaxon_banner" .}}
+
+    <div class="container">
+        {{template "auth_bar" .}}
+        <h2>Announcement</h2>
+        <p>Set the current site-wide announcement banner. Leave the message empty and submit to clear it.</p>
+
+        {{if .Error}}
+            <div class="status-message error">{{.Error}}</div>
+        {{end}}
+        {{if .Success}}
+            <div class="status-message success">{{.Success}}</div>
+        {{end}}
+
+        <form class="klaxon-form" action="/mod/klaxon" method="POST">
+            <div>
+                <label for="tone">Tone</label>
+                <select id="tone" name="tone">
+                    <option value="info" {{if and .Klaxon (eq .Klaxon.Tone "info")}}selected{{end}}>Info</option>
+                    <option value="warning" {{if and .Klaxon (eq .Klaxon.Tone "warning")}}selected{{end}}>Warning</option>
+                    <option value="danger" {{if and .Klaxon (eq .Klaxon.Tone "danger")}}selected{{end}}>Danger</option>
+                    <option value="success" {{if and .Klaxon (eq .Klaxon.Tone "success")}}selected{{end}}>Success</option>
+                </select>
+            </div>
+            <div>
+                <label for="emoji">Emoji</label>
+                <input id="emoji" type="text" name="emoji" placeholder="⚡" value="{{if .Klaxon}}{{.Klaxon.Emoji}}{{end}}" />
+            </div>
+            <div>
+                <label for="message">Message</label>
+                <textarea id="message" name="message" rows="4" placeholder="What is the announcement?">{{if .Klaxon}}{{.Klaxon.Message}}{{end}}</textarea>
+            </div>
+            <div class="klaxon-actions">
+                <button type="submit">Save Klaxon</button>
+                <button type="submit" name="clear" value="1">Clear Klaxon</button>
+            </div>
+        </form>
+
+        {{template "footer_home" .}}
+    </div>
+</body>
+</html>

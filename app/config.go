@@ -6,7 +6,6 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
-	"os"
 	"strings"
 )
 
@@ -21,11 +20,8 @@ type AuthConfig struct {
 const authCookieName = "jank_auth"
 
 func openDatabase() (*sql.DB, error) {
-	driver := strings.ToLower(strings.TrimSpace(os.Getenv("JANK_DB_DRIVER")))
-	dsn := strings.TrimSpace(os.Getenv("JANK_DB_DSN"))
-	if dsn == "" {
-		dsn = strings.TrimSpace(os.Getenv("DATABASE_URL"))
-	}
+	driver := strings.ToLower(getenvTrim("JANK_DB_DRIVER"))
+	dsn := firstEnv("JANK_DB_DSN", "DATABASE_URL")
 
 	if driver == "" {
 		driver = "postgres"
@@ -70,10 +66,10 @@ func parseTemplates(fs embed.FS) (*template.Template, error) {
 // ------------------- Auth Config -------------------
 
 func loadAuthConfig() AuthConfig {
-	username := strings.TrimSpace(os.Getenv("JANK_FORUM_USER"))
-	password := strings.TrimSpace(os.Getenv("JANK_FORUM_PASS"))
-	secret := strings.TrimSpace(os.Getenv("JANK_FORUM_SECRET"))
-	jwtSecret := strings.TrimSpace(os.Getenv("JANK_JWT_SECRET"))
+	username := getenvTrim("JANK_FORUM_USER")
+	password := getenvTrim("JANK_FORUM_PASS")
+	secret := getenvTrim("JANK_FORUM_SECRET")
+	jwtSecret := getenvTrim("JANK_JWT_SECRET")
 
 	if username == "" {
 		username = "admin"

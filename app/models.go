@@ -104,6 +104,15 @@ type Post struct {
 	DeletedReason string      `json:"-"`
 }
 
+// Klaxon represents a site-wide announcement banner.
+type Klaxon struct {
+	ID        int
+	Tone      string
+	Emoji     string
+	Message   string
+	UpdatedAt time.Time
+}
+
 // ------------------- Template Data -------------------
 
 // IndexViewData holds data for the index.html template.
@@ -212,6 +221,7 @@ type AuthViewData struct {
 	CurrentPath     string
 	IsModerator     bool
 	SearchQuery     string
+	Klaxon          *Klaxon
 }
 
 // Report represents a moderation report.
@@ -245,4 +255,12 @@ type ModReport struct {
 type ModReportsViewData struct {
 	AuthViewData
 	Reports []*ModReport
+}
+
+// KlaxonAdminViewData holds data for the klaxon admin page.
+type KlaxonAdminViewData struct {
+	AuthViewData
+	Klaxon  *Klaxon
+	Error   string
+	Success string
 }

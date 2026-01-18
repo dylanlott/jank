@@ -186,6 +186,95 @@
             text-align: center;
             border-bottom: 1px solid var(--color-border);
         }
+        .klaxon {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px 16px 0;
+        }
+        .klaxon-banner {
+            --klaxon-bg: rgba(255, 240, 198, 0.18);
+            --klaxon-border: rgba(255, 214, 112, 0.5);
+            --klaxon-text: var(--color-text-strong);
+            --klaxon-link: var(--color-link-hover);
+            width: min(94%, 980px);
+            margin: 0 auto;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--klaxon-border);
+            background: var(--klaxon-bg);
+            color: var(--klaxon-text);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 12px 30px var(--color-shadow);
+            display: grid;
+            gap: 6px;
+        }
+        .klaxon-banner::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.05),
+                rgba(255, 255, 255, 0.05) 10px,
+                transparent 10px,
+                transparent 20px
+            );
+            opacity: 0.35;
+            pointer-events: none;
+        }
+        .klaxon-banner > * {
+            position: relative;
+            z-index: 1;
+        }
+        .klaxon-title {
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            text-transform: uppercase;
+            font-size: 0.78em;
+        }
+        .klaxon-message p {
+            margin: 0;
+        }
+        .klaxon-message a {
+            color: var(--klaxon-link);
+            font-weight: 600;
+        }
+        .klaxon-body {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            font-size: 0.98em;
+        }
+        .klaxon-emoji {
+            font-size: 1.4em;
+            line-height: 1;
+        }
+        .klaxon-actions a {
+            color: var(--klaxon-link);
+            font-weight: 600;
+        }
+        .klaxon-info {
+            --klaxon-bg: rgba(84, 190, 255, 0.18);
+            --klaxon-border: rgba(84, 190, 255, 0.45);
+            --klaxon-link: #9fdcff;
+        }
+        .klaxon-warning {
+            --klaxon-bg: rgba(255, 200, 84, 0.2);
+            --klaxon-border: rgba(255, 200, 84, 0.5);
+            --klaxon-link: #ffd670;
+        }
+        .klaxon-danger {
+            --klaxon-bg: rgba(255, 123, 92, 0.22);
+            --klaxon-border: rgba(255, 123, 92, 0.55);
+            --klaxon-link: #ffb19c;
+        }
+        .klaxon-success {
+            --klaxon-bg: rgba(53, 212, 138, 0.2);
+            --klaxon-border: rgba(53, 212, 138, 0.5);
+            --klaxon-link: #8ef0c1;
+        }
         .logo {
             display: flex;
             align-items: center;
@@ -677,6 +766,22 @@
     </script>
 {{end}}
 
+{{define "klaxon_banner"}}
+    {{if .Klaxon}}
+        <section class="klaxon" role="region" aria-label="Announcements">
+            <div class="klaxon-banner {{if .Klaxon.Tone}}klaxon-{{.Klaxon.Tone}}{{else}}klaxon-info{{end}}">
+                <div class="klaxon-title">Announcement</div>
+                <div class="klaxon-body">
+                    {{if .Klaxon.Emoji}}
+                        <span class="klaxon-emoji">{{.Klaxon.Emoji}}</span>
+                    {{end}}
+                    <div class="klaxon-message">{{.Klaxon.Message}}</div>
+                </div>
+            </div>
+        </section>
+    {{end}}
+{{end}}
+
 {{define "site_header"}}
     <header>
         <div class="logo">
@@ -702,6 +807,7 @@
                 <a href="/">Home</a> ·
                 {{if .IsModerator}}
                     <a href="/mod/reports">Mod queue</a> ·
+                    <a href="/mod/klaxon">Klaxon</a> ·
                 {{end}}
                 {{if .IsAuthenticated}}
                     User: <a href="/profile">{{.Username}}</a> · <a href="/logout?next={{.CurrentPath | urlquery}}">Log out</a>

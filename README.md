@@ -11,24 +11,55 @@
 
 > a tcg-focused forum
 
-`jank` uses Go with PostgreSQL by default (SQLite is optional) to store data. It is intentionally simple with all front-end assets statically embedded in the Go binary at build time.
+`jank` uses Go with PostgreSQL by default (SQLite is optional) to store data. It is intentionally simple with all front-end assets statically embedded in the Go binary at build time. The server listens on `http://localhost:8080`.
 
 ## Development
 
-To run the server:
+### Quick start (SQLite)
+
+The Makefile defaults to SQLite for local development:
 
 ```sh
-export JANK_DB_DSN="postgres://user:pass@localhost:5432/jank?sslmode=disable"
-go run main.go
+make run
 ```
 
-To use SQLite instead:
+Or run directly:
 
 ```sh
 export JANK_DB_DRIVER="sqlite"
 export JANK_DB_DSN="./sqlite.db"
-go run main.go
+go run .
 ```
+
+To override the HTTP listen address, set `JANK_ADDR` (full `host:port`) or `JANK_PORT` / `PORT` (port only).
+
+### PostgreSQL
+
+If you want Postgres (the default when `JANK_DB_DRIVER` is unset), set the DSN:
+
+```sh
+export JANK_DB_DSN="postgres://user:pass@localhost:5432/jank?sslmode=disable"
+go run .
+```
+
+You can also set `DATABASE_URL` instead of `JANK_DB_DSN`.
+
+### Auth config
+
+Posting threads or comments via HTML views requires a login cookie. Configure credentials with:
+
+```sh
+export JANK_FORUM_USER="admin"
+export JANK_FORUM_PASS="admin"
+export JANK_FORUM_SECRET="change-me"
+export JANK_JWT_SECRET="change-me-too"
+```
+
+If secrets are omitted, they are generated per process (see logs). You can also sign up via `/signup` to create additional users.
+
+### Announcements (klaxon banner)
+
+Moderators can set the site-wide klaxon banner from `/mod/klaxon`. The data is persisted in the database and renders across all pages.
 
 ### Search (boards + threads + posts)
 
@@ -53,19 +84,6 @@ To force a rebuild of SQLite search indexes without restarting the app, run:
 ```sh
 sqlite3 ./sqlite.db "INSERT INTO boards_fts(boards_fts) VALUES('rebuild'); INSERT INTO threads_fts(threads_fts) VALUES('rebuild'); INSERT INTO posts_fts(posts_fts) VALUES('rebuild');"
 ```
-
-### Forum authentication (HTML views)
-
-Posting threads or comments via the HTML views requires a login cookie. Configure credentials with:
-
-```sh
-export JANK_FORUM_USER="admin"
-export JANK_FORUM_PASS="admin"
-export JANK_FORUM_SECRET="change-me"
-export JANK_JWT_SECRET="change-me-too"
-```
-
-You can also sign up via `/signup` to create additional users.
 
 ### JSON API authentication (JWT)
 
@@ -96,7 +114,40 @@ curl -X POST -H "Content-Type: application/json" \
   http://localhost:8080/threads/2
 ```
 
-## Testing
+## Moderation
+
+Moderation is tied to the forum admin user (`JANK_FORUM_USER`). That username is treated as the moderator for both HTML and API flows.
+
+HTML endpoints (cookie auth, moderator only):
+
+- `GET /mod/reports` moderation queue
+- `POST /mod/reports/{reportID}/resolve` resolve a report (`note` form field)
+- `POST /mod/posts/{postID}/delete` soft-delete a post (`reason`, optional `next`)
+
+JSON API endpoints (JWT auth; moderator required unless noted):
+
+- `POST /reports` create a report (any authenticated user)
+- `GET /reports` list open reports (moderator)
+- `POST /reports/{reportID}/resolve` resolve a report (moderator)
+- `POST /posts/{postID}/delete` soft-delete a post (moderator)
+
+Example: create and resolve a report
+
+```sh
+curl -X POST -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"post_id":1,"category":"spam","reason":"off-topic"}' \
+  http://localhost:8080/reports
+
+curl -X POST -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"note":"removed"}' \
+  http://localhost:8080/reports/1/resolve
+```
+
+## API smoke tests
+
+Most write endpoints require a JWT; see "JSON API authentication" above.
 
 ### Create a board
 
@@ -196,6 +247,12 @@ curl -X POST -H "Content-Type: application/json" \
 ```sh
 curl -X DELETE -H "Authorization: Bearer <token>" http://localhost:8080/trees/1/nodes/1/annotations/1
 ```
+
+## Tooling
+
+Common Make targets:
+
+- `make run` (SQLite), `make dev` (hot reload via `air`), `make test`, `make fmt`, `make tidy`, `make build`, `make backup-db`
 
 ## Ideas
 
