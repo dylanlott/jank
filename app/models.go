@@ -79,13 +79,17 @@ type CardTreeAnnotation struct {
 
 // Post represents an individual post in a thread.
 type Post struct {
-	ID      int         `json:"id"`
-	Author  string      `json:"author"`
-	Content string      `json:"content"`
-	Created time.Time   `json:"created"`
-	Number  *big.Int    `json:"number"`
-	Flair   string      `json:"flair"`
-	Trees   []*CardTree `json:"trees,omitempty"`
+	ID            int         `json:"id"`
+	Author        string      `json:"author"`
+	Content       string      `json:"content"`
+	Created       time.Time   `json:"created"`
+	Number        *big.Int    `json:"number"`
+	Flair         string      `json:"flair"`
+	Trees         []*CardTree `json:"trees,omitempty"`
+	IsDeleted     bool        `json:"-"`
+	DeletedAt     *time.Time  `json:"-"`
+	DeletedBy     string      `json:"-"`
+	DeletedReason string      `json:"-"`
 }
 
 // ------------------- Template Data -------------------
@@ -112,6 +116,7 @@ type ThreadViewData struct {
 	LastBump              time.Time
 	BumpCooldownRemaining int
 	NecroWarning          bool
+	ReportCategories      []string
 }
 
 // NewThreadViewData holds data for the new_thread.html template.
@@ -186,4 +191,38 @@ type AuthViewData struct {
 	IsAuthenticated bool
 	Username        string
 	CurrentPath     string
+	IsModerator     bool
+}
+
+// Report represents a moderation report.
+type Report struct {
+	ID             int        `json:"id"`
+	PostID         int        `json:"post_id"`
+	Category       string     `json:"category"`
+	Reason         string     `json:"reason,omitempty"`
+	ReportedBy     string     `json:"reported_by,omitempty"`
+	Created        time.Time  `json:"created"`
+	ResolvedAt     *time.Time `json:"resolved_at,omitempty"`
+	ResolvedBy     string     `json:"resolved_by,omitempty"`
+	ResolutionNote string     `json:"resolution_note,omitempty"`
+}
+
+// ModReport is a report with joined post/thread context.
+type ModReport struct {
+	Report
+	PostAuthor        string    `json:"post_author"`
+	PostContent       string    `json:"post_content"`
+	PostCreated       time.Time `json:"post_created"`
+	PostDeleted       bool      `json:"post_deleted"`
+	PostDeletedReason string    `json:"post_deleted_reason,omitempty"`
+	ThreadID          int       `json:"thread_id"`
+	ThreadTitle       string    `json:"thread_title"`
+	BoardID           int       `json:"board_id"`
+	BoardName         string    `json:"board_name"`
+}
+
+// ModReportsViewData holds data for the moderation queue page.
+type ModReportsViewData struct {
+	AuthViewData
+	Reports []*ModReport
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
@@ -28,6 +29,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 	dbDriver = "sqlite3"
 	db = testDB
 	auth = AuthConfig{
+		Username:  "admin",
 		Secret:    []byte("test-secret"),
 		JWTSecret: []byte("test-jwt-secret"),
 	}
@@ -205,5 +207,103 @@ func TestVerifyJWTExpired(t *testing.T) {
 	}
 	if _, ok := verifyJWT(token); ok {
 		t.Fatalf("expected expired token to be rejected")
+	}
+}
+
+func TestReportsAPIModerationFlow(t *testing.T) {
+	setupTestDB(t)
+
+	if _, err := createUser(db, "admin", "secret"); err != nil {
+		t.Fatalf("create admin: %v", err)
+	}
+	if _, err := createUser(db, "alice", "secret"); err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	board, err := createBoard(db, "/test/", "test board")
+	if err != nil {
+		t.Fatalf("create board: %v", err)
+	}
+	thread, err := createThread(db, board.ID, "hello", "alice")
+	if err != nil {
+		t.Fatalf("create thread: %v", err)
+	}
+	post, err := createPost(db, thread.ID, "alice", "nope")
+	if err != nil {
+		t.Fatalf("create post: %v", err)
+	}
+
+	userToken, _, err := issueJWT("alice", time.Hour)
+	if err != nil {
+		t.Fatalf("issue jwt: %v", err)
+	}
+
+	reportBody := bytes.NewBufferString(`{"post_id":` + strconv.Itoa(post.ID) + `,"category":"spam","reason":"bad"}`)
+	reportReq := httptest.NewRequest(http.MethodPost, "/reports", reportBody)
+	reportReq.Header.Set("Authorization", "Bearer "+userToken)
+	reportRec := httptest.NewRecorder()
+
+	reportsHandler(reportRec, reportReq)
+
+	if reportRec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", reportRec.Code, reportRec.Body.String())
+	}
+	var reportResp Report
+	if err := json.NewDecoder(reportRec.Body).Decode(&reportResp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if reportResp.ID == 0 {
+		t.Fatalf("expected report id")
+	}
+
+	modToken, _, err := issueJWT("admin", time.Hour)
+	if err != nil {
+		t.Fatalf("issue admin jwt: %v", err)
+	}
+
+	listReq := httptest.NewRequest(http.MethodGet, "/reports", nil)
+	listReq.Header.Set("Authorization", "Bearer "+modToken)
+	listRec := httptest.NewRecorder()
+
+	reportsHandler(listRec, listReq)
+
+	if listRec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", listRec.Code, listRec.Body.String())
+	}
+	var reports []ModReport
+	if err := json.NewDecoder(listRec.Body).Decode(&reports); err != nil {
+		t.Fatalf("decode reports: %v", err)
+	}
+	if len(reports) != 1 {
+		t.Fatalf("expected 1 report, got %d", len(reports))
+	}
+
+	resolveReq := httptest.NewRequest(http.MethodPost, "/reports/1/resolve", bytes.NewBufferString(`{"note":"handled"}`))
+	resolveReq = mux.SetURLVars(resolveReq, map[string]string{"reportID": strconv.Itoa(reportResp.ID)})
+	resolveReq.Header.Set("Authorization", "Bearer "+modToken)
+	resolveRec := httptest.NewRecorder()
+
+	reportResolveHandler(resolveRec, resolveReq)
+
+	if resolveRec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", resolveRec.Code, resolveRec.Body.String())
+	}
+
+	deleteReq := httptest.NewRequest(http.MethodPost, "/posts/1/delete", bytes.NewBufferString(`{"reason":"rules"}`))
+	deleteReq = mux.SetURLVars(deleteReq, map[string]string{"postID": strconv.Itoa(post.ID)})
+	deleteReq.Header.Set("Authorization", "Bearer "+modToken)
+	deleteRec := httptest.NewRecorder()
+
+	postDeleteHandler(deleteRec, deleteReq)
+
+	if deleteRec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", deleteRec.Code, deleteRec.Body.String())
+	}
+
+	posts, err := getPostsByThreadID(db, thread.ID)
+	if err != nil {
+		t.Fatalf("get posts: %v", err)
+	}
+	if len(posts) != 1 || !posts[0].IsDeleted {
+		t.Fatalf("expected post to be deleted")
 	}
 }

@@ -20,7 +20,15 @@ func getAuthViewData(r *http.Request) AuthViewData {
 		IsAuthenticated: ok,
 		Username:        username,
 		CurrentPath:     r.URL.RequestURI(),
+		IsModerator:     isModerator(username),
 	}
+}
+
+func isModerator(username string) bool {
+	if username == "" {
+		return false
+	}
+	return username == auth.Username
 }
 
 func getAuthenticatedUsername(r *http.Request) (string, bool) {
@@ -98,6 +106,18 @@ func requireAPIAuth(w http.ResponseWriter, r *http.Request) bool {
 	}
 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
 	return false
+}
+
+func requireAPIModerator(w http.ResponseWriter, r *http.Request) bool {
+	if !requireAPIAuth(w, r) {
+		return false
+	}
+	username, _ := getBearerUsername(r)
+	if !isModerator(username) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return false
+	}
+	return true
 }
 
 func getBearerUsername(r *http.Request) (string, bool) {

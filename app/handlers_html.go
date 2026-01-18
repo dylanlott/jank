@@ -16,6 +16,14 @@ import (
 
 // ------------------- HTML Handlers -------------------
 
+var reportCategories = []string{
+	"spam",
+	"harassment",
+	"illegal",
+	"off-topic",
+	"other",
+}
+
 // serveIndex executes index.html, showing a list of boards with links.
 func serveIndex(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
@@ -225,6 +233,7 @@ func serveThreadView(w http.ResponseWriter, r *http.Request) {
 			LastBump:              lastBump,
 			BumpCooldownRemaining: bumpCooldownRemaining,
 			NecroWarning:          necroWarning,
+			ReportCategories:      reportCategories,
 		}
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -273,6 +282,140 @@ func serveThreadView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	renderErrorPage(w, r, http.StatusNotFound, "Not Found", "That page does not exist.", "/")
+}
+
+func reportPostHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")
+		return
+	}
+	if !requireAuth(w, r) {
+		return
+	}
+	vars := mux.Vars(r)
+	postID, err := strconv.Atoi(vars["postID"])
+	if err != nil {
+		renderErrorPage(w, r, http.StatusBadRequest, "Invalid Post", "That post ID is not valid.", "/")
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		renderErrorPage(w, r, http.StatusBadRequest, "Invalid Form", "We couldn't read that report.", "/")
+		return
+	}
+	category := strings.TrimSpace(r.FormValue("category"))
+	if !isValidReportCategory(category) {
+		renderErrorPage(w, r, http.StatusBadRequest, "Invalid Category", "Please pick a report category.", "/")
+		return
+	}
+	reason := strings.TrimSpace(r.FormValue("reason"))
+	username, _ := getAuthenticatedUsername(r)
+	if _, err := createReport(db, postID, category, reason, username); err != nil {
+		log.Errorf("Failed to create report: %v", err)
+		renderErrorPage(w, r, http.StatusInternalServerError, "Report Failed", "We couldn't send that report.", "/")
+		return
+	}
+
+	threadID, err := getPostThreadID(db, postID)
+	if err != nil {
+		renderErrorPage(w, r, http.StatusNotFound, "Post Not Found", "We couldn't find that post.", "/")
+		return
+	}
+	http.Redirect(w, r, fmt.Sprintf("/view/thread/%d", threadID), http.StatusSeeOther)
+}
+
+func serveModReports(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")
+		return
+	}
+	if !requireModerator(w, r) {
+		return
+	}
+	reports, err := getOpenReports(db)
+	if err != nil {
+		log.Errorf("Failed to load reports: %v", err)
+		renderErrorPage(w, r, http.StatusInternalServerError, "Queue Unavailable", "We couldn't load the report queue.", "/")
+		return
+	}
+
+	authData := getAuthViewData(r)
+	data := ModReportsViewData{
+		AuthViewData: authData,
+		Reports:      reports,
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "mod_reports.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func resolveReportHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")
+		return
+	}
+	if !requireModerator(w, r) {
+		return
+	}
+	vars := mux.Vars(r)
+	reportID, err := strconv.Atoi(vars["reportID"])
+	if err != nil {
+		renderErrorPage(w, r, http.StatusBadRequest, "Invalid Report", "That report ID is not valid.", "/")
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		renderErrorPage(w, r, http.StatusBadRequest, "Invalid Form", "We couldn't read that resolution.", "/mod/reports")
+		return
+	}
+	note := strings.TrimSpace(r.FormValue("note"))
+	username, _ := getAuthenticatedUsername(r)
+	if err := resolveReport(db, reportID, username, note); err != nil {
+		log.Errorf("Failed to resolve report: %v", err)
+		renderErrorPage(w, r, http.StatusInternalServerError, "Resolve Failed", "We couldn't resolve that report.", "/mod/reports")
+		return
+	}
+	http.Redirect(w, r, "/mod/reports", http.StatusSeeOther)
+}
+
+func deletePostHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")
+		return
+	}
+	if !requireModerator(w, r) {
+		return
+	}
+	vars := mux.Vars(r)
+	postID, err := strconv.Atoi(vars["postID"])
+	if err != nil {
+		renderErrorPage(w, r, http.StatusBadRequest, "Invalid Post", "That post ID is not valid.", "/")
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		renderErrorPage(w, r, http.StatusBadRequest, "Invalid Form", "We couldn't read that deletion.", "/")
+		return
+	}
+	reason := strings.TrimSpace(r.FormValue("reason"))
+	if reason == "" {
+		renderErrorPage(w, r, http.StatusBadRequest, "Missing Reason", "Please add a reason for the removal.", "/")
+		return
+	}
+	username, _ := getAuthenticatedUsername(r)
+	if err := softDeletePost(db, postID, username, reason); err != nil {
+		log.Errorf("Failed to delete post: %v", err)
+		renderErrorPage(w, r, http.StatusInternalServerError, "Delete Failed", "We couldn't remove that post.", "/")
+		return
+	}
+	next := sanitizeNext(r.FormValue("next"))
+	if next == "" {
+		threadID, err := getPostThreadID(db, postID)
+		if err == nil {
+			next = fmt.Sprintf("/view/thread/%d", threadID)
+		} else {
+			next = "/"
+		}
+	}
+	http.Redirect(w, r, next, http.StatusSeeOther)
 }
 
 type cardTreePayload struct {
@@ -652,4 +795,25 @@ func sanitizeNext(next string) string {
 		return ""
 	}
 	return next
+}
+
+func requireModerator(w http.ResponseWriter, r *http.Request) bool {
+	if !requireAuth(w, r) {
+		return false
+	}
+	username, _ := getAuthenticatedUsername(r)
+	if !isModerator(username) {
+		renderErrorPage(w, r, http.StatusForbidden, "Forbidden", "You don't have access to that page.", "/")
+		return false
+	}
+	return true
+}
+
+func isValidReportCategory(category string) bool {
+	for _, item := range reportCategories {
+		if category == item {
+			return true
+		}
+	}
+	return false
 }

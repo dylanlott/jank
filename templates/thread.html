@@ -47,6 +47,20 @@
             white-space: pre-wrap;
             line-height: 1.5;
         }
+        .post-deleted {
+            background: var(--color-surface-alt);
+            border-left: 3px solid var(--color-danger);
+            padding-left: 12px;
+        }
+        .post-deleted-message {
+            font-style: italic;
+            color: var(--color-text-muted);
+        }
+        .post-deleted-note {
+            margin-top: 6px;
+            font-size: 0.9em;
+            color: var(--color-text-muted);
+        }
         .post-number {
             font-size: 0.9em;
             color: var(--color-text-muted);
@@ -80,6 +94,48 @@
             display: inline-flex;
             gap: 6px;
             flex-wrap: wrap;
+        }
+        .post-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .post-actions details {
+            border: 1px solid var(--color-border-soft);
+            border-radius: 6px;
+            padding: 6px 10px;
+            background: var(--color-surface-muted);
+        }
+        .post-actions summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--color-text-strong);
+        }
+        .post-actions form {
+            margin-top: 8px;
+        }
+        .post-actions textarea,
+        .post-actions select,
+        .post-actions input[type="text"] {
+            width: 100%;
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+        .post-actions button {
+            background: var(--color-primary);
+            color: #fff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .post-actions button:hover {
+            background: var(--color-primary-hover);
+        }
+        .post-actions .danger button {
+            background: var(--color-danger);
         }
         .post-backlinks-label {
             text-transform: uppercase;
@@ -479,63 +535,108 @@
         <ul class="posts">
             {{if .Thread.Posts}}
                 {{range .Thread.Posts}}
-                    <li class="post" id="post-{{.ID}}" data-post-id="{{.ID}}">
+                    <li class="post {{if .IsDeleted}}post-deleted{{end}}" id="post-{{.ID}}" data-post-id="{{.ID}}">
                         <div class="post-header">
                             <div class="post-author">{{.Author}}</div>
                             <div class="post-date">{{.Created.Format "Jan 2, 2006 at 3:04pm"}}</div>
                         </div>
-                        <div class="post-content">{{.Content}}</div>
-                        {{if .Trees}}
-                            <div class="card-trees">
-                                <!-- <h3>Card Trees</h3> -->
-                                {{range .Trees}}
-                                    <div class="card-tree">
-                                        <div class="card-tree-header">
-                                            <div class="card-tree-title">{{.Title}}</div>
-                                            {{if .IsPrimary}}
-                                                <span class="card-tree-badge">Primary</span>
+                        <div class="post-content" data-deleted="{{.IsDeleted}}">{{- if .IsDeleted -}}
+                                <div class="post-deleted-message">Post removed by moderation.</div>
+                                {{- if .DeletedReason -}}
+                                    <div class="post-deleted-note">Reason: {{.DeletedReason}}</div>
+                                {{- end -}}
+                                {{- if .DeletedAt -}}
+                                    <div class="post-deleted-note">Removed on {{.DeletedAt.Format "Jan 2, 2006 at 3:04pm"}}{{if .DeletedBy}} by {{.DeletedBy}}{{end}}.</div>
+                                {{- end -}}
+                            {{- else -}}
+                                {{- .Content -}}
+                            {{- end -}}</div>
+                        {{if .IsDeleted}}
+                        {{else}}
+                            {{if .Trees}}
+                                <div class="card-trees">
+                                    <!-- <h3>Card Trees</h3> -->
+                                    {{range .Trees}}
+                                        <div class="card-tree">
+                                            <div class="card-tree-header">
+                                                <div class="card-tree-title">{{.Title}}</div>
+                                                {{if .IsPrimary}}
+                                                    <span class="card-tree-badge">Primary</span>
+                                                {{end}}
+                                            </div>
+                                            {{if .Description}}
+                                                <div class="card-tree-desc">{{.Description}}</div>
+                                            {{end}}
+                                            {{if .Nodes}}
+                                                <ul class="card-tree-nodes">
+                                                    {{range .Nodes}}
+                                                        <li class="card-tree-node" style="--tree-depth: {{.Depth}};">
+                                                            <span class="card-tree-connector" aria-hidden="true"></span>
+                                                            <div class="card-tree-card">[[ {{.CardName}} ]]</div>
+                                                            {{if .Annotations}}
+                                                                <ul class="card-tree-annotations">
+                                                                    {{range .Annotations}}
+                                                                        <li class="card-tree-annotation">
+                                                                            <span class="card-tree-annotation-kind">{{.Kind}}</span>
+                                                                            {{if .Label}}
+                                                                                <span class="card-tree-annotation-label">{{.Label}}</span>
+                                                                            {{end}}
+                                                                            {{if .Tags}}
+                                                                                <span class="card-tree-annotation-tags">{{.Tags}}</span>
+                                                                            {{end}}
+                                                                            <span class="card-tree-annotation-body">{{.Body}}</span>
+                                                                        </li>
+                                                                    {{end}}
+                                                                </ul>
+                                                            {{end}}
+                                                        </li>
+                                                    {{end}}
+                                                </ul>
+                                            {{else}}
+                                                <div class="muted">No cards yet.</div>
                                             {{end}}
                                         </div>
-                                        {{if .Description}}
-                                            <div class="card-tree-desc">{{.Description}}</div>
-                                        {{end}}
-                                        {{if .Nodes}}
-                                            <ul class="card-tree-nodes">
-                                                {{range .Nodes}}
-                                                    <li class="card-tree-node" style="--tree-depth: {{.Depth}};">
-                                                        <span class="card-tree-connector" aria-hidden="true"></span>
-                                                        <div class="card-tree-card">[[ {{.CardName}} ]]</div>
-                                                        {{if .Annotations}}
-                                                            <ul class="card-tree-annotations">
-                                                                {{range .Annotations}}
-                                                                    <li class="card-tree-annotation">
-                                                                        <span class="card-tree-annotation-kind">{{.Kind}}</span>
-                                                                        {{if .Label}}
-                                                                            <span class="card-tree-annotation-label">{{.Label}}</span>
-                                                                        {{end}}
-                                                                        {{if .Tags}}
-                                                                            <span class="card-tree-annotation-tags">{{.Tags}}</span>
-                                                                        {{end}}
-                                                                        <span class="card-tree-annotation-body">{{.Body}}</span>
-                                                                    </li>
-                                                                {{end}}
-                                                            </ul>
-                                                        {{end}}
-                                                    </li>
-                                                {{end}}
-                                            </ul>
-                                        {{else}}
-                                            <div class="muted">No cards yet.</div>
-                                        {{end}}
-                                    </div>
-                                {{end}}
-                            </div>
+                                    {{end}}
+                                </div>
+                            {{end}}
                         {{end}}
                         <div class="post-number">post ID: {{.Number}}</div>
                         <div class="post-links">
                             <a class="post-anchor" href="#post-{{.ID}}">&gt;&gt;{{.ID}}</a>
                             <span class="post-backlinks" data-backlinks-for="{{.ID}}"></span>
                         </div>
+                        {{if or $.IsAuthenticated $.IsModerator}}
+                            <div class="post-actions">
+                                {{if and $.IsAuthenticated (not .IsDeleted)}}
+                                    <details class="post-report">
+                                        <summary>Report</summary>
+                                        <form method="POST" action="/report/post/{{.ID}}">
+                                            <label for="report-category-{{.ID}}">Category</label>
+                                            <select id="report-category-{{.ID}}" name="category" required>
+                                                <option value="" disabled selected>Pick a category</option>
+                                                {{range $.ReportCategories}}
+                                                    <option value="{{.}}">{{.}}</option>
+                                                {{end}}
+                                            </select>
+                                            <label for="report-reason-{{.ID}}">Details (optional)</label>
+                                            <textarea id="report-reason-{{.ID}}" name="reason" rows="3" placeholder="Tell us what happened."></textarea>
+                                            <button type="submit">Send report</button>
+                                        </form>
+                                    </details>
+                                {{end}}
+                                {{if and $.IsModerator (not .IsDeleted)}}
+                                    <details class="danger">
+                                        <summary>Remove</summary>
+                                        <form method="POST" action="/mod/posts/{{.ID}}/delete">
+                                            <input type="hidden" name="next" value="{{$.CurrentPath}}">
+                                            <label for="delete-reason-{{.ID}}">Removal reason</label>
+                                            <input id="delete-reason-{{.ID}}" name="reason" type="text" placeholder="Required" required />
+                                            <button type="submit">Soft delete</button>
+                                        </form>
+                                    </details>
+                                {{end}}
+                            </div>
+                        {{end}}
                         <div class="post-flair" data-flair="{{.Flair}}" data-number="{{.Number}}">
                             <span class="post-flair-label">flair</span>
                             <span class="post-flair-badge">{{.Flair}}</span>
@@ -648,6 +749,9 @@
             };
 
             postContents.forEach(content => {
+                if (content.dataset.deleted === "true") {
+                    return;
+                }
                 const post = content.closest(".post");
                 const postID = post?.dataset.postId;
                 const html = content.innerHTML;

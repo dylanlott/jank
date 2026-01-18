@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -34,6 +35,20 @@ type annotationCreateRequest struct {
 	Label        string `json:"label"`
 	Tags         string `json:"tags"`
 	SourcePostID *int   `json:"source_post_id"`
+}
+
+type reportCreateRequest struct {
+	PostID   int    `json:"post_id"`
+	Category string `json:"category"`
+	Reason   string `json:"reason"`
+}
+
+type reportResolveRequest struct {
+	Note string `json:"note"`
+}
+
+type postDeleteRequest struct {
+	Reason string `json:"reason"`
 }
 
 // boardsHandler handles creation/listing of boards (REST API).
@@ -181,6 +196,114 @@ func postsHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func reportsHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		if !requireAPIModerator(w, r) {
+			return
+		}
+		reports, err := getOpenReports(db)
+		if err != nil {
+			log.Errorf("Failed to load reports: %v", err)
+			http.Error(w, "Failed to load reports", http.StatusInternalServerError)
+			return
+		}
+		respondJSON(w, reports)
+
+	case http.MethodPost:
+		if !requireAPIAuth(w, r) {
+			return
+		}
+		username, _ := getBearerUsername(r)
+		var req reportCreateRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+		if req.PostID == 0 {
+			http.Error(w, "Post ID is required", http.StatusBadRequest)
+			return
+		}
+		req.Category = strings.TrimSpace(req.Category)
+		if !isValidReportCategory(req.Category) {
+			http.Error(w, "Invalid category", http.StatusBadRequest)
+			return
+		}
+		req.Reason = strings.TrimSpace(req.Reason)
+		report, err := createReport(db, req.PostID, req.Category, req.Reason, username)
+		if err != nil {
+			log.Errorf("Failed to create report: %v", err)
+			http.Error(w, "Failed to create report", http.StatusInternalServerError)
+			return
+		}
+		respondJSON(w, report)
+
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func reportResolveHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !requireAPIModerator(w, r) {
+		return
+	}
+	vars := mux.Vars(r)
+	reportID, err := strconv.Atoi(vars["reportID"])
+	if err != nil {
+		http.Error(w, "Invalid Report ID", http.StatusBadRequest)
+		return
+	}
+	var req reportResolveRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	username, _ := getBearerUsername(r)
+	if err := resolveReport(db, reportID, username, strings.TrimSpace(req.Note)); err != nil {
+		log.Errorf("Failed to resolve report: %v", err)
+		http.Error(w, "Failed to resolve report", http.StatusInternalServerError)
+		return
+	}
+	respondJSON(w, map[string]string{"status": "ok"})
+}
+
+func postDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !requireAPIModerator(w, r) {
+		return
+	}
+	vars := mux.Vars(r)
+	postID, err := strconv.Atoi(vars["postID"])
+	if err != nil {
+		http.Error(w, "Invalid Post ID", http.StatusBadRequest)
+		return
+	}
+	var req postDeleteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	req.Reason = strings.TrimSpace(req.Reason)
+	if req.Reason == "" {
+		http.Error(w, "Reason is required", http.StatusBadRequest)
+		return
+	}
+	username, _ := getBearerUsername(r)
+	if err := softDeletePost(db, postID, username, req.Reason); err != nil {
+		log.Errorf("Failed to delete post: %v", err)
+		http.Error(w, "Failed to delete post", http.StatusInternalServerError)
+		return
+	}
+	respondJSON(w, map[string]string{"status": "ok"})
 }
 
 // boardTreesHandler lists or creates trees under a board (REST API).
