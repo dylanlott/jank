@@ -32,6 +32,7 @@
             --color-success-hover: #2ab173;
             --color-primary: #35f2aa;
             --color-primary-hover: #76f9c7;
+            --color-button-text: #07110c;
             --color-accent-soft-bg: #0f2d22;
             --color-accent-soft-text: #9be6c9;
             --color-tag-bg: #141e19;
@@ -79,6 +80,7 @@
             --color-success-hover: #2ab173;
             --color-primary: #3cf5b1;
             --color-primary-hover: #76f9c7;
+            --color-button-text: #07110c;
             --color-accent-soft-bg: #0f2d22;
             --color-accent-soft-text: #9be6c9;
             --color-tag-bg: #16221c;
@@ -95,6 +97,54 @@
             --glow-accent: rgba(60, 245, 177, 0.25);
             --glow-edge: rgba(32, 165, 118, 0.25);
             --grid-line: rgba(100, 255, 201, 0.08);
+        }
+        :root[data-theme="light"] {
+            color-scheme: light;
+            --color-bg: #f7f1e7;
+            --color-surface: #fffaf2;
+            --color-surface-alt: #f1e9dc;
+            --color-surface-muted: #e7ddcf;
+            --color-text: #1a2a25;
+            --color-text-strong: #0f1b18;
+            --color-text-muted: #5b6c62;
+            --color-border: #d7ccbe;
+            --color-border-soft: #e6ddd2;
+            --color-border-softer: #efe7dc;
+            --color-border-strong: #c7baaa;
+            --color-link: #0c6b4c;
+            --color-link-hover: #07563d;
+            --color-header-bg: #f0e7da;
+            --color-header-text: #17231f;
+            --color-logo-art: #1e7655;
+            --color-logo-subtitle: #3b7b61;
+            --color-input-bg: #fffdf7;
+            --color-input-text: #17231f;
+            --color-tooltip-bg: #fffdf9;
+            --color-tooltip-text: #1a2a25;
+            --color-tooltip-border: #d9d0c4;
+            --color-shadow: rgba(15, 30, 24, 0.12);
+            --color-danger: #d54f38;
+            --color-success: #14885a;
+            --color-success-hover: #0f6f49;
+            --color-primary: #0c6b4c;
+            --color-primary-hover: #07563d;
+            --color-button-text: #fff8ee;
+            --color-accent-soft-bg: #d8efe3;
+            --color-accent-soft-text: #0b5f43;
+            --color-tag-bg: #e6dccc;
+            --color-tag-text: #24362f;
+            --color-filter-bg: #ece2d5;
+            --color-filter-text: #495951;
+            --color-filter-border: #d2c6b8;
+            --color-filter-active-bg: #cfe8d9;
+            --color-filter-active-border: #90cdb2;
+            --color-filter-active-text: #0b5f43;
+            --color-tree-line: #c8bdae;
+            --color-tooltip-link: #0c6b4c;
+            --color-card-bg: #efe5d7;
+            --glow-accent: rgba(12, 107, 76, 0.14);
+            --glow-edge: rgba(12, 107, 76, 0.12);
+            --grid-line: rgba(28, 86, 64, 0.08);
         }
         body {
             font-family: "Space Grotesk", "IBM Plex Sans", "Helvetica Neue", sans-serif;
@@ -222,7 +272,7 @@
             border-radius: 999px;
             border: 1px solid transparent;
             background: var(--color-primary);
-            color: #07110c;
+            color: var(--color-button-text);
             font-weight: 600;
             font-size: 0.75em;
             line-height: 1;

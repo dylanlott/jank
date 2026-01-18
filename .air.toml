@@ -1,0 +1,12 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./bin/jank ."
+bin = "./bin/jank"
+full_bin = "JANK_DB_DRIVER=sqlite JANK_DB_DSN=./sqlite.db ./bin/jank"
+include_ext = ["go", "tpl", "tmpl", "html", "css", "js"]
+exclude_dir = ["bin", "tmp", "backups"]
+
+[log]
+time = true
