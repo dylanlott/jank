@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math/big"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -158,6 +159,9 @@ func migrateSQLite(db *sql.DB) error {
 	if _, err := db.Exec(reportsIndexStmt); err != nil {
 		return err
 	}
+	if err := ensureSearchTables(db); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -286,6 +290,142 @@ func migratePostgres(db *sql.DB) error {
 		return err
 	}
 	return nil
+}
+
+func ensureSearchTables(db *sql.DB) error {
+	if dbDriver != "sqlite3" {
+		return nil
+	}
+	sqliteFTSAvailable = true
+	boardsFTSStmt := `
+	CREATE VIRTUAL TABLE IF NOT EXISTS boards_fts USING fts5(
+		name,
+		description,
+		content='boards',
+		content_rowid='id'
+	);`
+	threadsFTSStmt := `
+	CREATE VIRTUAL TABLE IF NOT EXISTS threads_fts USING fts5(
+		title,
+		author,
+		tags,
+		content='threads',
+		content_rowid='id'
+	);`
+	postsFTSStmt := `
+	CREATE VIRTUAL TABLE IF NOT EXISTS posts_fts USING fts5(
+		content,
+		author,
+		content='posts',
+		content_rowid='id'
+	);`
+	boardsTriggers := []string{
+		`CREATE TRIGGER IF NOT EXISTS boards_ai AFTER INSERT ON boards BEGIN
+			INSERT INTO boards_fts(rowid, name, description) VALUES (new.id, new.name, new.description);
+		END;`,
+		`CREATE TRIGGER IF NOT EXISTS boards_ad AFTER DELETE ON boards BEGIN
+			INSERT INTO boards_fts(boards_fts, rowid, name, description) VALUES('delete', old.id, old.name, old.description);
+		END;`,
+		`CREATE TRIGGER IF NOT EXISTS boards_au AFTER UPDATE ON boards BEGIN
+			INSERT INTO boards_fts(boards_fts, rowid, name, description) VALUES('delete', old.id, old.name, old.description);
+			INSERT INTO boards_fts(rowid, name, description) VALUES (new.id, new.name, new.description);
+		END;`,
+	}
+	threadsTriggers := []string{
+		`CREATE TRIGGER IF NOT EXISTS threads_ai AFTER INSERT ON threads BEGIN
+			INSERT INTO threads_fts(rowid, title, author, tags) VALUES (new.id, new.title, new.author, new.tags);
+		END;`,
+		`CREATE TRIGGER IF NOT EXISTS threads_ad AFTER DELETE ON threads BEGIN
+			INSERT INTO threads_fts(threads_fts, rowid, title, author, tags) VALUES('delete', old.id, old.title, old.author, old.tags);
+		END;`,
+		`CREATE TRIGGER IF NOT EXISTS threads_au AFTER UPDATE ON threads BEGIN
+			INSERT INTO threads_fts(threads_fts, rowid, title, author, tags) VALUES('delete', old.id, old.title, old.author, old.tags);
+			INSERT INTO threads_fts(rowid, title, author, tags) VALUES (new.id, new.title, new.author, new.tags);
+		END;`,
+	}
+	postsTriggers := []string{
+		`CREATE TRIGGER IF NOT EXISTS posts_ai AFTER INSERT ON posts BEGIN
+			INSERT INTO posts_fts(rowid, content, author) VALUES (new.id, new.content, new.author);
+		END;`,
+		`CREATE TRIGGER IF NOT EXISTS posts_ad AFTER DELETE ON posts BEGIN
+			INSERT INTO posts_fts(posts_fts, rowid, content, author) VALUES('delete', old.id, old.content, old.author);
+		END;`,
+		`CREATE TRIGGER IF NOT EXISTS posts_au AFTER UPDATE ON posts BEGIN
+			INSERT INTO posts_fts(posts_fts, rowid, content, author) VALUES('delete', old.id, old.content, old.author);
+			INSERT INTO posts_fts(rowid, content, author) VALUES (new.id, new.content, new.author);
+		END;`,
+	}
+
+	if err := execFTSStmt(db, boardsFTSStmt); err != nil {
+		return err
+	}
+	if !sqliteFTSAvailable {
+		return nil
+	}
+	if err := execFTSStmt(db, threadsFTSStmt); err != nil {
+		return err
+	}
+	if !sqliteFTSAvailable {
+		return nil
+	}
+	if err := execFTSStmt(db, postsFTSStmt); err != nil {
+		return err
+	}
+	for _, stmt := range boardsTriggers {
+		if err := execFTSStmt(db, stmt); err != nil {
+			return err
+		}
+	}
+	for _, stmt := range threadsTriggers {
+		if err := execFTSStmt(db, stmt); err != nil {
+			return err
+		}
+	}
+	for _, stmt := range postsTriggers {
+		if err := execFTSStmt(db, stmt); err != nil {
+			return err
+		}
+	}
+	if err := execFTSStmt(db, `INSERT INTO boards_fts(boards_fts) VALUES('rebuild');`); err != nil {
+		return err
+	}
+	if err := execFTSStmt(db, `INSERT INTO threads_fts(threads_fts) VALUES('rebuild');`); err != nil {
+		return err
+	}
+	if err := execFTSStmt(db, `INSERT INTO posts_fts(posts_fts) VALUES('rebuild');`); err != nil {
+		return err
+	}
+	return nil
+}
+
+func execFTSStmt(db *sql.DB, stmt string) error {
+	if _, err := db.Exec(stmt); err != nil {
+		lower := strings.ToLower(err.Error())
+		if strings.Contains(lower, "no such module: fts5") {
+			sqliteFTSAvailable = false
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+var ftsTokenPattern = regexp.MustCompile(`[a-zA-Z0-9]+`)
+var sqliteFTSAvailable bool
+
+func buildFTSQuery(input string) string {
+	tokens := ftsTokenPattern.FindAllString(strings.ToLower(input), -1)
+	if len(tokens) == 0 {
+		return ""
+	}
+	terms := make([]string, 0, len(tokens))
+	for _, token := range tokens {
+		if token == "" {
+			continue
+		}
+		terms = append(terms, token+"*")
+	}
+	return strings.Join(terms, " AND ")
 }
 
 // seedData inserts a default board if none exist.
@@ -432,6 +572,57 @@ func createBoard(db *sql.DB, name, description string) (*Board, error) {
 // getAllBoards retrieves all boards from the database.
 func getAllBoards(db *sql.DB) ([]*Board, error) {
 	rows, err := db.Query(`SELECT id, name, description FROM boards`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var boards []*Board
+	for rows.Next() {
+		var b Board
+		if err := rows.Scan(&b.ID, &b.Name, &b.Description); err != nil {
+			return nil, err
+		}
+		boards = append(boards, &b)
+	}
+	return boards, nil
+}
+
+func searchBoards(db *sql.DB, query string, limit int) ([]*Board, error) {
+	if strings.TrimSpace(query) == "" {
+		return []*Board{}, nil
+	}
+	var rows *sql.Rows
+	var err error
+	if dbDriver == "sqlite3" && sqliteFTSAvailable {
+		ftsQuery := buildFTSQuery(query)
+		if ftsQuery == "" {
+			return []*Board{}, nil
+		}
+		rows, err = db.Query(`
+			SELECT b.id, b.name, b.description
+			FROM boards_fts
+			JOIN boards b ON b.id = boards_fts.rowid
+			WHERE boards_fts MATCH $1
+			ORDER BY bm25(boards_fts)
+			LIMIT $2`, ftsQuery, limit)
+	} else if dbDriver == "sqlite3" {
+		like := "%" + query + "%"
+		rows, err = db.Query(`
+			SELECT id, name, description
+			FROM boards
+			WHERE name LIKE $1 COLLATE NOCASE OR description LIKE $1 COLLATE NOCASE
+			ORDER BY id DESC
+			LIMIT $2`, like, limit)
+	} else {
+		like := "%" + query + "%"
+		rows, err = db.Query(`
+			SELECT id, name, description
+			FROM boards
+			WHERE name ILIKE $1 OR description ILIKE $1
+			ORDER BY id DESC
+			LIMIT $2`, like, limit)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -670,6 +861,91 @@ func getThreadsByBoardID(db *sql.DB, boardID int, loadPosts bool) ([]*Thread, er
 				return nil, err
 			}
 			t.Posts = posts
+		}
+		threads = append(threads, &t)
+	}
+	return threads, nil
+}
+
+func searchThreads(db *sql.DB, query string, limit int) ([]*ThreadSearchResult, error) {
+	if strings.TrimSpace(query) == "" {
+		return []*ThreadSearchResult{}, nil
+	}
+	var rows *sql.Rows
+	var err error
+	if dbDriver == "sqlite3" && sqliteFTSAvailable {
+		ftsQuery := buildFTSQuery(query)
+		if ftsQuery == "" {
+			return []*ThreadSearchResult{}, nil
+		}
+		rows, err = db.Query(`
+			WITH fts_matches AS (
+				SELECT t.id AS thread_id, bm25(threads_fts) AS score
+				FROM threads_fts
+				JOIN threads t ON t.id = threads_fts.rowid
+				WHERE threads_fts MATCH $1
+				UNION ALL
+				SELECT p.thread_id AS thread_id, bm25(posts_fts) AS score
+				FROM posts_fts
+				JOIN posts p ON p.id = posts_fts.rowid
+				WHERE posts_fts MATCH $1 AND p.deleted_at IS NULL
+			),
+			ranked AS (
+				SELECT thread_id, MIN(score) AS score
+				FROM fts_matches
+				GROUP BY thread_id
+			)
+			SELECT t.id, t.board_id, b.name, t.title, t.author, t.created
+			FROM ranked
+			JOIN threads t ON t.id = ranked.thread_id
+			JOIN boards b ON b.id = t.board_id
+			ORDER BY ranked.score, t.created DESC
+			LIMIT $2`, ftsQuery, limit)
+	} else if dbDriver == "sqlite3" {
+		like := "%" + query + "%"
+		rows, err = db.Query(`
+			SELECT t.id, t.board_id, b.name, t.title, t.author, t.created
+			FROM threads t
+			JOIN boards b ON b.id = t.board_id
+			WHERE t.title LIKE $1 COLLATE NOCASE
+				OR t.author LIKE $1 COLLATE NOCASE
+				OR t.tags LIKE $1 COLLATE NOCASE
+				OR EXISTS (
+					SELECT 1 FROM posts p
+					WHERE p.thread_id = t.id
+						AND p.deleted_at IS NULL
+						AND p.content LIKE $1 COLLATE NOCASE
+				)
+			ORDER BY t.created DESC
+			LIMIT $2`, like, limit)
+	} else {
+		like := "%" + query + "%"
+		rows, err = db.Query(`
+			SELECT t.id, t.board_id, b.name, t.title, t.author, t.created
+			FROM threads t
+			JOIN boards b ON b.id = t.board_id
+			WHERE t.title ILIKE $1
+				OR t.author ILIKE $1
+				OR t.tags ILIKE $1
+				OR EXISTS (
+					SELECT 1 FROM posts p
+					WHERE p.thread_id = t.id
+						AND p.deleted_at IS NULL
+						AND p.content ILIKE $1
+				)
+			ORDER BY t.created DESC
+			LIMIT $2`, like, limit)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var threads []*ThreadSearchResult
+	for rows.Next() {
+		var t ThreadSearchResult
+		if err := rows.Scan(&t.ID, &t.BoardID, &t.BoardName, &t.Title, &t.Author, &t.Created); err != nil {
+			return nil, err
 		}
 		threads = append(threads, &t)
 	}

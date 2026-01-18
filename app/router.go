@@ -21,6 +21,7 @@ func buildRouter() *mux.Router {
 	r.HandleFunc("/profile", serveProfile).Methods("GET")
 	r.HandleFunc("/user", serveUserLookup).Methods("GET", "POST")
 	r.HandleFunc("/user/{username}", servePublicProfile).Methods("GET")
+	r.HandleFunc("/search", serveSearch).Methods("GET")
 	r.HandleFunc("/favicon.ico", serveFaviconRedirect).Methods("GET")
 	r.HandleFunc("/favicon.svg", serveFavicon).Methods("GET")
 	r.HandleFunc("/auth/token", authTokenHandler).Methods("POST")

@@ -1004,6 +1004,69 @@
                 if (!form || !toggle || !builder || !payloadInput) {
                     return;
                 }
+                const cardSuggestCache = new Map();
+                let cardSuggestCounter = 0;
+                const cardSuggestDelay = 250;
+
+                const fetchCardSuggestions = async (query, signal) => {
+                    const key = query.toLowerCase();
+                    if (cardSuggestCache.has(key)) {
+                        return cardSuggestCache.get(key);
+                    }
+                    const response = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(query)}`, { signal });
+                    if (!response.ok) {
+                        throw new Error("Failed to load suggestions");
+                    }
+                    const data = await response.json();
+                    const suggestions = Array.isArray(data.data) ? data.data : [];
+                    cardSuggestCache.set(key, suggestions);
+                    return suggestions;
+                };
+
+                const initCardAutocomplete = (input) => {
+                    if (!input || input.dataset.autocompleteReady === "true") {
+                        return;
+                    }
+                    input.dataset.autocompleteReady = "true";
+                    cardSuggestCounter += 1;
+                    const listId = `card-suggest-${cardSuggestCounter}`;
+                    const datalist = document.createElement("datalist");
+                    datalist.id = listId;
+                    input.setAttribute("list", listId);
+                    builder.appendChild(datalist);
+                    let timer = null;
+                    let controller = null;
+
+                    const updateSuggestions = async () => {
+                        const query = input.value.trim();
+                        if (query.length < 2) {
+                            datalist.innerHTML = "";
+                            return;
+                        }
+                        if (controller) {
+                            controller.abort();
+                        }
+                        controller = new AbortController();
+                        try {
+                            const suggestions = await fetchCardSuggestions(query, controller.signal);
+                            datalist.innerHTML = suggestions
+                                .slice(0, 12)
+                                .map(name => `<option value="${name.replace(/"/g, "&quot;")}"></option>`)
+                                .join("");
+                        } catch (error) {
+                            if (error.name !== "AbortError") {
+                                datalist.innerHTML = "";
+                            }
+                        }
+                    };
+
+                    input.addEventListener("input", () => {
+                        if (timer) {
+                            clearTimeout(timer);
+                        }
+                        timer = window.setTimeout(updateSuggestions, cardSuggestDelay);
+                    });
+                };
                 const treesContainer = builder.querySelector(".tree-builder-trees");
                 const addTreeButton = builder.querySelector(".tree-builder-add-tree");
                 let treeCount = 0;
@@ -1081,11 +1144,13 @@
                         </div>
                         <div class="tree-node-annotations"></div>
                     `;
+                    const cardInput = node.querySelector(".tree-node-card");
+                    initCardAutocomplete(cardInput);
                     node.querySelector(".tree-builder-remove-node").addEventListener("click", function() {
                         node.remove();
                         updateParentOptions(tree);
                     });
-                    node.querySelector(".tree-node-card").addEventListener("input", function() {
+                    cardInput.addEventListener("input", function() {
                         updateParentOptions(tree);
                     });
                     node.querySelector(".tree-builder-add-annotation").addEventListener("click", function() {

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {{template "shared_head"}}
+    <title>/jank/search/</title>
+    <style>
+        {{template "shared_styles"}}
+        .search-hero {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin: 16px 0 24px;
+        }
+        .search-hero input[type="search"] {
+            flex: 1 1 280px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--color-border);
+            background: var(--color-input-bg);
+            color: var(--color-input-text);
+            font-size: 1em;
+        }
+        .search-hero button {
+            padding: 10px 18px;
+            border-radius: 999px;
+            border: none;
+            background: var(--color-primary);
+            color: #07110c;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        .search-hero button:hover {
+            background: var(--color-primary-hover);
+            transform: translateY(-1px);
+        }
+        .search-section {
+            margin-bottom: 24px;
+            padding: 16px;
+            border: 1px solid var(--color-border-soft);
+            border-radius: 12px;
+            background: var(--color-surface-alt);
+        }
+        .search-section h3 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 1.05em;
+        }
+        .search-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .search-item {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--color-border-softer);
+        }
+        .search-item:last-child {
+            border-bottom: none;
+        }
+        .search-item .meta {
+            color: var(--color-text-muted);
+            font-size: 0.9em;
+            margin-top: 6px;
+        }
+        .muted {
+            color: var(--color-text-muted);
+        }
+    </style>
+</head>
+<body>
+    {{template "site_header" "/jank/ search"}}
+
+    <div class="container">
+        {{template "auth_bar" .}}
+
+        <h2>Search the stash</h2>
+        <form class="search-hero" action="/search" method="GET">
+            <input type="search" name="q" placeholder="Try a board name, thread title, or tag" value="{{.SearchQuery}}" aria-label="Search" />
+            <button type="submit">Search</button>
+        </form>
+
+        {{if .SearchQuery}}
+            <div class="search-section">
+                <h3>Boards ({{len .Boards}})</h3>
+                {{if .Boards}}
+                    <ul class="search-list">
+                        {{range .Boards}}
+                            <li class="search-item">
+                                <div><a href="/view/board/{{.ID}}">{{.Name}}</a></div>
+                                <div class="meta">{{.Description}}</div>
+                            </li>
+                        {{end}}
+                    </ul>
+                {{else}}
+                    <p class="muted">No matching boards yet.</p>
+                {{end}}
+            </div>
+
+            <div class="search-section">
+                <h3>Threads ({{len .Threads}})</h3>
+                {{if .Threads}}
+                    <ul class="search-list">
+                        {{range .Threads}}
+                            <li class="search-item">
+                                <div><a href="/view/thread/{{.ID}}">{{.Title}}</a></div>
+                                <div class="meta">{{.BoardName}} · {{.Author}} · {{.Created.Format "Jan 2, 2006"}}</div>
+                            </li>
+                        {{end}}
+                    </ul>
+                {{else}}
+                    <p class="muted">No matching threads yet.</p>
+                {{end}}
+            </div>
+        {{else}}
+            <p class="muted">Start typing above to search boards and threads.</p>
+        {{end}}
+
+        {{template "footer_brand" .}}
+    </div>
+</body>
+</html>

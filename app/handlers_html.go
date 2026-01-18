@@ -3,6 +3,7 @@ package app
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -48,6 +49,41 @@ func serveIndex(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := templates.ExecuteTemplate(w, "index.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// serveSearch executes search.html with board and thread matches.
+func serveSearch(w http.ResponseWriter, r *http.Request) {
+	query := strings.TrimSpace(r.URL.Query().Get("q"))
+	authData := getAuthViewData(r)
+	authData.SearchQuery = query
+
+	data := SearchViewData{
+		AuthViewData: authData,
+		Boards:       []*Board{},
+		Threads:      []*ThreadSearchResult{},
+	}
+
+	if query != "" {
+		boards, err := searchBoards(db, query, 20)
+		if err != nil {
+			log.Errorf("Failed to search boards: %v", err)
+			renderErrorPage(w, r, http.StatusInternalServerError, "Search Unavailable", "Board search failed. Please try again.", "/")
+			return
+		}
+		threads, err := searchThreads(db, query, 50)
+		if err != nil {
+			log.Errorf("Failed to search threads: %v", err)
+			renderErrorPage(w, r, http.StatusInternalServerError, "Search Unavailable", "Thread search failed. Please try again.", "/")
+			return
+		}
+		data.Boards = boards
+		data.Threads = threads
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "search.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -163,7 +199,20 @@ func serveNewThread(w http.ResponseWriter, r *http.Request) {
 			renderErrorPage(w, r, http.StatusBadRequest, "Missing Title", "Thread title cannot be empty.", fmt.Sprintf("/view/board/newthread/%d", boardID))
 			return
 		}
-		tags := parseTagsInput(r.FormValue("tags"))
+		tags, err := validateTags(parseTagsInput(r.FormValue("tags")))
+		if err != nil {
+			title := "Invalid Tags"
+			message := "Tags must be short and limited in count."
+			if errors.Is(err, errTagCount) {
+				title = "Too Many Tags"
+				message = fmt.Sprintf("Please keep tags to %d or fewer.", maxThreadTags)
+			} else if errors.Is(err, errTagLength) {
+				title = "Tag Too Long"
+				message = fmt.Sprintf("Each tag must be %d characters or fewer.", maxTagLength)
+			}
+			renderErrorPage(w, r, http.StatusBadRequest, title, message, fmt.Sprintf("/view/board/newthread/%d", boardID))
+			return
+		}
 		content := strings.TrimSpace(r.FormValue("content"))
 		if content == "" {
 			renderErrorPage(w, r, http.StatusBadRequest, "Missing Post", "Thread content cannot be empty.", fmt.Sprintf("/view/board/newthread/%d", boardID))

@@ -2,16 +2,48 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
+	"unicode/utf8"
+)
+
+const (
+	maxThreadTags  = 6
+	maxTagLength   = 24
+)
+
+var (
+	errTagCount  = errors.New("tag count exceeds limit")
+	errTagLength = errors.New("tag length exceeds limit")
 )
 
 // respondJSON sends JSON responses (for our REST endpoints).
 func respondJSON(w http.ResponseWriter, data interface{}) {
+	payload, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		log.Errorf("Failed to encode JSON response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", "  ")
-	_ = enc.Encode(data)
+	if _, err := w.Write(append(payload, '\n')); err != nil {
+		log.Errorf("Failed to write JSON response: %v", err)
+	}
+}
+
+func validateTags(tags []string) ([]string, error) {
+	normalized := normalizeTags(tags)
+	if len(normalized) > maxThreadTags {
+		return nil, errTagCount
+	}
+	for _, tag := range normalized {
+		if utf8.RuneCountInString(tag) > maxTagLength {
+			return nil, errTagLength
+		}
+	}
+	return normalized, nil
 }
 
 func parseTagsInput(raw string) []string {

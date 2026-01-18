@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -55,6 +57,36 @@ func TestRespondJSON(t *testing.T) {
 	}
 	if !bytes.Contains(rec.Body.Bytes(), []byte(`"status": "ok"`)) {
 		t.Fatalf("response body missing payload: %s", rec.Body.String())
+	}
+}
+
+func TestRespondJSONEncodingError(t *testing.T) {
+	rec := httptest.NewRecorder()
+	payload := map[string]interface{}{"bad": func() {}}
+
+	respondJSON(rec, payload)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", rec.Code)
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte("Failed to encode response")) {
+		t.Fatalf("expected error response, got %s", rec.Body.String())
+	}
+}
+
+func TestValidateTagsCount(t *testing.T) {
+	tags := []string{"a", "b", "c", "d", "e", "f", "g"}
+	_, err := validateTags(tags)
+	if !errors.Is(err, errTagCount) {
+		t.Fatalf("expected tag count error, got %v", err)
+	}
+}
+
+func TestValidateTagsLength(t *testing.T) {
+	longTag := strings.Repeat("a", maxTagLength+1)
+	_, err := validateTags([]string{longTag})
+	if !errors.Is(err, errTagLength) {
+		t.Fatalf("expected tag length error, got %v", err)
 	}
 }
 
@@ -305,5 +337,45 @@ func TestReportsAPIModerationFlow(t *testing.T) {
 	}
 	if len(posts) != 1 || !posts[0].IsDeleted {
 		t.Fatalf("expected post to be deleted")
+	}
+}
+
+func TestSearchBoardsAndThreads(t *testing.T) {
+	setupTestDB(t)
+
+	board, err := createBoard(db, "/edh/", "Commander brews and tech")
+	if err != nil {
+		t.Fatalf("create board: %v", err)
+	}
+	thread, err := createThread(db, board.ID, "Atraxa brew ideas", "alice", []string{"edh", "+1"})
+	if err != nil {
+		t.Fatalf("create thread: %v", err)
+	}
+	if _, err := createPost(db, thread.ID, "alice", "Secret tech inside"); err != nil {
+		t.Fatalf("create post: %v", err)
+	}
+
+	boards, err := searchBoards(db, "edh", 10)
+	if err != nil {
+		t.Fatalf("search boards: %v", err)
+	}
+	if len(boards) != 1 {
+		t.Fatalf("expected 1 board, got %d", len(boards))
+	}
+
+	threads, err := searchThreads(db, "atrax", 10)
+	if err != nil {
+		t.Fatalf("search threads: %v", err)
+	}
+	if len(threads) != 1 {
+		t.Fatalf("expected 1 thread, got %d", len(threads))
+	}
+
+	contentThreads, err := searchThreads(db, "secret", 10)
+	if err != nil {
+		t.Fatalf("search thread content: %v", err)
+	}
+	if len(contentThreads) != 1 {
+		t.Fatalf("expected 1 thread by content, got %d", len(contentThreads))
 	}
 }

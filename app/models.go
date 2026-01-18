@@ -36,6 +36,16 @@ type Thread struct {
 	CardTags   []string  `json:"-"`
 }
 
+// ThreadSearchResult represents a thread search hit with board context.
+type ThreadSearchResult struct {
+	ID        int
+	BoardID   int
+	BoardName string
+	Title     string
+	Author    string
+	Created   time.Time
+}
+
 // CardTree represents a scoped tree of cards with annotations.
 type CardTree struct {
 	ID          int             `json:"id"`
@@ -126,6 +136,13 @@ type NewThreadViewData struct {
 	BoardID int
 }
 
+// SearchViewData holds data for the search page.
+type SearchViewData struct {
+	AuthViewData
+	Boards  []*Board
+	Threads []*ThreadSearchResult
+}
+
 // ProfileViewData holds data for the profile.html template.
 type ProfileViewData struct {
 	AuthViewData
@@ -193,6 +210,7 @@ type AuthViewData struct {
 	Username        string
 	CurrentPath     string
 	IsModerator     bool
+	SearchQuery     string
 }
 
 // Report represents a moderation report.

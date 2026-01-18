@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -143,7 +144,19 @@ func threadsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Printf("created thread %+v", &thread)
 
-		insertedThread, err := createThread(db, boardID, thread.Title, username, thread.Tags)
+		tags, err := validateTags(thread.Tags)
+		if err != nil {
+			message := "Invalid tags"
+			if errors.Is(err, errTagCount) {
+				message = "Too many tags"
+			} else if errors.Is(err, errTagLength) {
+				message = "Tag too long"
+			}
+			http.Error(w, message, http.StatusBadRequest)
+			return
+		}
+
+		insertedThread, err := createThread(db, boardID, thread.Title, username, tags)
 		if err != nil {
 			log.Errorf("Failed to create thread: %v", err)
 			http.Error(w, "Failed to create thread", http.StatusInternalServerError)

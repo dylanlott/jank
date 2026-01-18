@@ -30,6 +30,30 @@ export JANK_DB_DSN="./sqlite.db"
 go run main.go
 ```
 
+### Search (boards + threads + posts)
+
+The `/search` page queries board names/descriptions and thread titles/tags/authors, plus post content. SQLite uses FTS5 with prefix matching when available, and falls back to `LIKE` if FTS5 is not compiled in.
+
+For SQLite, migrations create the following FTS tables and triggers and rebuild them on startup:
+
+- `boards_fts`
+- `threads_fts`
+- `posts_fts`
+
+If your SQLite build lacks FTS5 (you see `no such module: fts5`), search still works but without fuzzy ranking. To enable FTS5 with `mattn/go-sqlite3`, build/run with:
+
+```sh
+go run -tags sqlite_fts5 main.go
+```
+
+PostgreSQL does not use FTS tables here; search falls back to `ILIKE` queries against boards, threads, and post content.
+
+To force a rebuild of SQLite search indexes without restarting the app, run:
+
+```sh
+sqlite3 ./sqlite.db "INSERT INTO boards_fts(boards_fts) VALUES('rebuild'); INSERT INTO threads_fts(threads_fts) VALUES('rebuild'); INSERT INTO posts_fts(posts_fts) VALUES('rebuild');"
+```
+
 ### Forum authentication (HTML views)
 
 Posting threads or comments via the HTML views requires a login cookie. Configure credentials with:
