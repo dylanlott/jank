@@ -23,4 +23,4 @@
 - [ ] Add support for viewing gameplay summaries and stats from vedh games.
   - [ ] Timeline views of gamelog events
 - [ ] First-class support for TCG Player, EDHRec, Commander Spellbook, etc...
-- [ ] Add a site-wide klaxon banner system for announcements.
+- [x] Add a site-wide klaxon banner system for announcements.
