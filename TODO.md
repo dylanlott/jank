@@ -3,7 +3,8 @@
 - [x] Thread list meta: show replies count, last bump time, OP card tags.
 - [x] Tripcode-style identity: optional “deck tag” or format tag for anonymity with flavor.
 - [x] Fast reply: bottom-right slide-up reply box with markdown preview + card syntax.
-- [x] Card hover: auto-render [[Card Name]] as tooltip with set/price links.
+- [x] Card hover: auto-render [[Card Name]] as tooltip with card art
+- [x] Add set/price links to card tooltips
 - [x] Format filters: quick toggles for Standard/Modern/EDH/Pioneer formats.
 - [x] Bump limiter: soft cooldown + bump warning for necro posts.
 - [x] Post tools: inline quote/anchor linking with >>123 and backlink map.
@@ -13,6 +14,14 @@
 - [x] Minimal mod tools: soft-delete with reason, report queue with categories.
 - [x] Add a thread and board search functionality with sqlite3 fuzzy search.
 - [ ] Add a simple vote mechanism for threads and replies.
+- [x] Add a board list, edit, and create page
+- [ ] Card tree builder UX improvements
+  - [x] Validate card names against Scryfall before submit
+  - [ ] Add inline typeahead + quick add row per depth
+  - [ ] Drag/drop reordering with keyboard controls
+  - [ ] Collapse/expand branches with batch controls
+  - [ ] Bulk paste decklist to auto-create nodes
+  - [ ] Compare view before save
 - [ ] Fix Makefile run target to avoid forcing SQLite or update help text to match behavior.
 - [ ] Improve SQLite backups with `sqlite3 .backup` to avoid corrupted copies.
 - [x] Document moderation API endpoints in README.md.

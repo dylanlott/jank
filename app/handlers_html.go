@@ -399,6 +399,155 @@ func serveModReports(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func serveBoardAdminList(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")
+		return
+	}
+	if !requireModerator(w, r) {
+		return
+	}
+	boards, err := getAllBoards(db)
+	if err != nil {
+		log.Errorf("Failed to retrieve boards: %v", err)
+		renderErrorPage(w, r, http.StatusInternalServerError, "Boards Unavailable", "We couldn't load the boards list.", "/")
+		return
+	}
+
+	authData := getAuthViewData(r)
+	data := BoardAdminListViewData{
+		AuthViewData: authData,
+		Boards:       boards,
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "board_list.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func serveBoardAdminCreate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodPost {
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")
+		return
+	}
+	if !requireModerator(w, r) {
+		return
+	}
+
+	var message string
+	board := &Board{}
+
+	if r.Method == http.MethodPost {
+		if err := r.ParseForm(); err != nil {
+			renderErrorPage(w, r, http.StatusBadRequest, "Invalid Form", "We couldn't read that board submission.", "/mod/boards/new")
+			return
+		}
+		name := strings.TrimSpace(r.FormValue("name"))
+		description := strings.TrimSpace(r.FormValue("description"))
+		board.Name = name
+		board.Description = description
+		if name == "" {
+			message = "Board name cannot be empty."
+		} else if _, err := createBoard(db, name, description); err != nil {
+			log.Errorf("Failed to create board: %v", err)
+			message = "Failed to create the board."
+		} else {
+			http.Redirect(w, r, "/mod/boards", http.StatusSeeOther)
+			return
+		}
+	}
+
+	authData := getAuthViewData(r)
+	data := BoardAdminFormViewData{
+		AuthViewData: authData,
+		Board:        board,
+		Error:        message,
+		IsEdit:       false,
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "board_form.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func serveBoardAdminEdit(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet && r.Method != http.MethodPost {
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")
+		return
+	}
+	if !requireModerator(w, r) {
+		return
+	}
+	vars := mux.Vars(r)
+	boardID, err := strconv.Atoi(vars["boardID"])
+	if err != nil {
+		renderErrorPage(w, r, http.StatusBadRequest, "Invalid Board", "That board ID is not valid.", "/mod/boards")
+		return
+	}
+
+	var message string
+	board, err := getBoardByID(db, boardID, false)
+	if err != nil {
+		log.Errorf("Board not found: %v", err)
+		renderErrorPage(w, r, http.StatusNotFound, "Board Not Found", "We couldn't find that board.", "/mod/boards")
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		if err := r.ParseForm(); err != nil {
+			renderErrorPage(w, r, http.StatusBadRequest, "Invalid Form", "We couldn't read that board update.", fmt.Sprintf("/mod/boards/%d/edit", boardID))
+			return
+		}
+		name := strings.TrimSpace(r.FormValue("name"))
+		description := strings.TrimSpace(r.FormValue("description"))
+		board.Name = name
+		board.Description = description
+		if name == "" {
+			message = "Board name cannot be empty."
+		} else if err := updateBoardByID(db, boardID, name, description); err != nil {
+			log.Errorf("Failed to update board: %v", err)
+			message = "Failed to update the board."
+		} else {
+			http.Redirect(w, r, "/mod/boards", http.StatusSeeOther)
+			return
+		}
+	}
+
+	authData := getAuthViewData(r)
+	data := BoardAdminFormViewData{
+		AuthViewData: authData,
+		Board:        board,
+		Error:        message,
+		IsEdit:       true,
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "board_form.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func serveBoardAdminDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")
+		return
+	}
+	if !requireModerator(w, r) {
+		return
+	}
+	vars := mux.Vars(r)
+	boardID, err := strconv.Atoi(vars["boardID"])
+	if err != nil {
+		renderErrorPage(w, r, http.StatusBadRequest, "Invalid Board", "That board ID is not valid.", "/mod/boards")
+		return
+	}
+	if err := deleteBoardByID(db, boardID); err != nil {
+		log.Errorf("Failed to delete board: %v", err)
+		renderErrorPage(w, r, http.StatusInternalServerError, "Delete Failed", "We couldn't delete that board.", "/mod/boards")
+		return
+	}
+	http.Redirect(w, r, "/mod/boards", http.StatusSeeOther)
+}
+
 func serveKlaxonAdmin(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodPost {
 		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")

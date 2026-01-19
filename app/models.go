@@ -264,3 +264,17 @@ type KlaxonAdminViewData struct {
 	Error   string
 	Success string
 }
+
+// BoardAdminListViewData holds data for the board admin list page.
+type BoardAdminListViewData struct {
+	AuthViewData
+	Boards []*Board
+}
+
+// BoardAdminFormViewData holds data for the board create/edit page.
+type BoardAdminFormViewData struct {
+	AuthViewData
+	Board  *Board
+	Error  string
+	IsEdit bool
+}

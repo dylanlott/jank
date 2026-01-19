@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {{template "shared_head"}}
+    <title>/jank/ board admin</title>
+    <style>
+        {{template "shared_styles"}}
+        .board-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .board-list {
+            list-style: none;
+            padding: 0;
+            margin: 18px 0 0;
+            display: grid;
+            gap: 12px;
+        }
+        .board-item {
+            border: 1px solid var(--color-border-strong);
+            border-radius: 10px;
+            padding: 14px 16px;
+            background: var(--color-surface-alt);
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .board-title {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: var(--color-text-strong);
+        }
+        .board-id {
+            font-size: 0.85em;
+            color: var(--color-text-muted);
+        }
+        .board-description {
+            margin-top: 6px;
+            color: var(--color-text-muted);
+            font-size: 0.95em;
+        }
+        .board-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .board-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(60, 245, 177, 0.35);
+            color: var(--color-text-strong);
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .board-action:hover {
+            border-color: rgba(60, 245, 177, 0.6);
+            background: rgba(60, 245, 177, 0.08);
+        }
+        .board-action.is-danger {
+            border-color: rgba(255, 123, 92, 0.5);
+            color: var(--color-danger);
+        }
+        .board-action.is-danger:hover {
+            border-color: rgba(255, 123, 92, 0.8);
+            background: rgba(255, 123, 92, 0.12);
+        }
+        .board-empty {
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 1px dashed var(--color-border);
+            color: var(--color-text-muted);
+            text-align: center;
+        }
+        .modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(8, 12, 18, 0.65);
+            z-index: 1000;
+            padding: 16px;
+        }
+        .modal.is-open {
+            display: flex;
+        }
+        .modal-card {
+            width: min(90vw, 420px);
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 20px 40px var(--color-shadow);
+        }
+        .modal-title {
+            margin: 0 0 8px;
+            font-size: 1.1em;
+            color: var(--color-text-strong);
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+        .modal-close {
+            border: 1px solid var(--color-border);
+            background: transparent;
+            color: var(--color-text-muted);
+        }
+        .modal-delete {
+            border-color: rgba(255, 123, 92, 0.6);
+            color: var(--color-danger);
+        }
+        .modal-delete:hover {
+            border-color: rgba(255, 123, 92, 0.85);
+            background: rgba(255, 123, 92, 0.12);
+        }
+        @media (max-width: 600px) {
+            .board-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .board-actions {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    {{template "site_header" "/jank/ boards"}}
+
+    {{template "klaxon_banner" .}}
+
+    <div class="container">
+        {{template "auth_bar" .}}
+        <div class="board-header">
+            <div>
+                <h2>Boards</h2>
+                <p class="muted">Create, edit, and keep the board list tidy.</p>
+            </div>
+            <a class="board-action" href="/mod/boards/new">New board</a>
+        </div>
+
+        {{if .Boards}}
+            <ul class="board-list">
+                {{range .Boards}}
+                    <li class="board-item">
+                        <div>
+                            <div class="board-title"><a href="/view/board/{{.ID}}">{{.Name}}</a></div>
+                            <div class="board-id">Board #{{.ID}}</div>
+                            <div class="board-description">{{.Description}}</div>
+                        </div>
+                        <div class="board-actions">
+                            <a class="board-action" href="/view/board/{{.ID}}">View</a>
+                            <a class="board-action" href="/mod/boards/{{.ID}}/edit">Edit</a>
+                            <button class="board-action is-danger js-delete-board" type="button" data-board-id="{{.ID}}" data-board-name="{{.Name}}">Delete</button>
+                        </div>
+                    </li>
+                {{end}}
+            </ul>
+        {{else}}
+            <div class="board-empty">No boards yet. Create the first one.</div>
+        {{end}}
+
+        {{template "footer_home" .}}
+    </div>
+
+    <div class="modal" id="delete-modal" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+            <h3 class="modal-title" id="delete-modal-title">Delete board?</h3>
+            <p class="muted" id="delete-modal-body">This will remove the board and all its threads.</p>
+            <form id="delete-modal-form" method="POST">
+                <div class="modal-actions">
+                    <button class="modal-close" type="button" data-modal-close>Cancel</button>
+                    <button class="modal-delete" type="submit">Delete board</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const modal = document.getElementById("delete-modal");
+            const modalBody = document.getElementById("delete-modal-body");
+            const form = document.getElementById("delete-modal-form");
+            const closeButtons = modal.querySelectorAll("[data-modal-close]");
+
+            const closeModal = () => {
+                modal.classList.remove("is-open");
+                modal.setAttribute("aria-hidden", "true");
+                form.removeAttribute("action");
+            };
+
+            closeButtons.forEach((button) => {
+                button.addEventListener("click", closeModal);
+            });
+
+            modal.addEventListener("click", (event) => {
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+
+            document.querySelectorAll(".js-delete-board").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const boardID = button.getAttribute("data-board-id");
+                    const boardName = button.getAttribute("data-board-name") || "this board";
+                    form.setAttribute("action", `/mod/boards/${boardID}/delete`);
+                    modalBody.textContent = `This will permanently remove ${boardName} and all its threads.`;
+                    modal.classList.add("is-open");
+                    modal.setAttribute("aria-hidden", "false");
+                });
+            });
+        });
+    </script>
+</body>
+</html>

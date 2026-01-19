@@ -591,6 +591,22 @@ func createBoard(db *sql.DB, name, description string) (*Board, error) {
 	}, nil
 }
 
+// updateBoardByID updates a board's name and description.
+func updateBoardByID(db *sql.DB, boardID int, name, description string) error {
+	result, err := db.Exec(`UPDATE boards SET name = $1, description = $2 WHERE id = $3`, name, description, boardID)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return fmt.Errorf("board not found")
+	}
+	return nil
+}
+
 // getAllBoards retrieves all boards from the database.
 func getAllBoards(db *sql.DB) ([]*Board, error) {
 	rows, err := db.Query(`SELECT id, name, description FROM boards`)
@@ -1675,15 +1691,13 @@ func resolveReport(db *sql.DB, reportID int, resolvedBy, note string) error {
 
 // deleteBoardByID deletes a board and its associated threads and posts from the database.
 func deleteBoardByID(db *sql.DB, boardID int) error {
+	if _, err := db.Exec(`DELETE FROM posts WHERE thread_id IN (SELECT id FROM threads WHERE board_id = $1)`, boardID); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`DELETE FROM threads WHERE board_id = $1`, boardID); err != nil {
+		return err
+	}
 	_, err := db.Exec(`DELETE FROM boards WHERE id = $1`, boardID)
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(`DELETE FROM threads WHERE board_id = $1`, boardID)
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(`DELETE FROM posts WHERE thread_id IN (SELECT id FROM threads WHERE board_id = $1)`, boardID)
 	return err
 }
 

@@ -538,6 +538,17 @@
             text-align: center;
             margin: 6px 0;
         }
+        .mtg-card-tooltip-meta,
+        .mtg-card-tooltip-price {
+            display: block;
+            font-size: 0.78em;
+            color: var(--color-tooltip-text);
+            margin: 4px 0;
+            text-align: center;
+        }
+        .mtg-card-tooltip-meta {
+            opacity: 0.85;
+        }
         .mtg-card-tooltip-links {
             display: flex;
             gap: 8px;
@@ -595,6 +606,25 @@
             padding: 10px;
             margin-top: 10px;
             background: var(--color-surface);
+        }
+        .tree-node-card.is-valid {
+            border-color: rgba(53, 212, 138, 0.6);
+            box-shadow: 0 0 0 2px rgba(53, 212, 138, 0.15);
+        }
+        .tree-node-card.is-invalid {
+            border-color: rgba(255, 123, 92, 0.6);
+            box-shadow: 0 0 0 2px rgba(255, 123, 92, 0.12);
+        }
+        .tree-node-card-status {
+            font-size: 0.8em;
+            margin: 4px 0 10px;
+            color: var(--color-text-muted);
+        }
+        .tree-node-card-status.is-valid {
+            color: var(--color-success);
+        }
+        .tree-node-card-status.is-invalid {
+            color: var(--color-danger);
         }
         .tree-node-header {
             display: flex;
@@ -807,6 +837,7 @@
                 <a href="/">Home</a> ·
                 {{if .IsModerator}}
                     <a href="/mod/reports">Mod queue</a> ·
+                    <a href="/mod/boards">Boards</a> ·
                     <a href="/mod/klaxon">Klaxon</a> ·
                 {{end}}
                 {{if .IsAuthenticated}}

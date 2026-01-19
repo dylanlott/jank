@@ -114,6 +114,8 @@
                     return;
                 }
                 const cardSuggestCache = new Map();
+                const cardValidationCache = new Map();
+                const cardValidationPromises = new Map();
                 let cardSuggestCounter = 0;
                 const cardSuggestDelay = 250;
 
@@ -130,6 +132,101 @@
                     const suggestions = Array.isArray(data.data) ? data.data : [];
                     cardSuggestCache.set(key, suggestions);
                     return suggestions;
+                };
+
+                const fetchCardValidation = async (name) => {
+                    const fetchCard = async (url) => {
+                        const response = await fetch(url);
+                        if (!response.ok) {
+                            return null;
+                        }
+                        return response.json();
+                    };
+                    const exactUrl = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`;
+                    const fuzzyUrl = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`;
+                    let data = await fetchCard(exactUrl);
+                    if (!data) {
+                        data = await fetchCard(fuzzyUrl);
+                    }
+                    if (!data || data.object === "error") {
+                        return null;
+                    }
+                    return data;
+                };
+
+                const getCardValidation = async (name) => {
+                    if (cardValidationCache.has(name)) {
+                        return cardValidationCache.get(name);
+                    }
+                    if (cardValidationPromises.has(name)) {
+                        return cardValidationPromises.get(name);
+                    }
+                    const promise = (async () => {
+                        const data = await fetchCardValidation(name);
+                        const result = data
+                            ? { ok: true, matchedName: data.name }
+                            : { ok: false, matchedName: "" };
+                        cardValidationCache.set(name, result);
+                        cardValidationPromises.delete(name);
+                        return result;
+                    })();
+                    cardValidationPromises.set(name, promise);
+                    return promise;
+                };
+
+                const clearCardStatus = (input) => {
+                    const status = input.closest(".tree-node")?.querySelector(".tree-node-card-status");
+                    if (!status) {
+                        return;
+                    }
+                    input.classList.remove("is-valid", "is-invalid");
+                    status.classList.remove("is-valid", "is-invalid");
+                    status.textContent = "";
+                };
+
+                const validateCardInput = async (input) => {
+                    const status = input.closest(".tree-node")?.querySelector(".tree-node-card-status");
+                    if (!status) {
+                        return { ok: true };
+                    }
+                    const name = input.value.trim();
+                    if (!name) {
+                        clearCardStatus(input);
+                        return { ok: false, empty: true };
+                    }
+                    const currentValue = name;
+                    status.textContent = "Checking card name...";
+                    status.classList.remove("is-valid", "is-invalid");
+                    input.classList.remove("is-valid", "is-invalid");
+                    const result = await getCardValidation(name);
+                    if (input.value.trim() !== currentValue) {
+                        return { ok: false, stale: true };
+                    }
+                    if (result.ok) {
+                        const matchedNote = result.matchedName && result.matchedName.toLowerCase() !== name.toLowerCase()
+                            ? `Matched: ${result.matchedName}`
+                            : "Card found.";
+                        status.textContent = matchedNote;
+                        status.classList.add("is-valid");
+                        input.classList.add("is-valid");
+                        return { ok: true, name };
+                    }
+                    status.textContent = "Card not found. Check spelling.";
+                    status.classList.add("is-invalid");
+                    input.classList.add("is-invalid");
+                    return { ok: false, name };
+                };
+
+                const validateAllCardInputs = async () => {
+                    const inputs = Array.from(builder.querySelectorAll(".tree-node-card"));
+                    const checks = inputs.map((input) => validateCardInput(input));
+                    const results = await Promise.all(checks);
+                    const invalid = results.filter(result => result && result.name && !result.ok);
+                    if (invalid.length > 0) {
+                        const names = Array.from(new Set(invalid.map(result => result.name)));
+                        return { ok: false, names };
+                    }
+                    return { ok: true };
                 };
 
                 const initCardAutocomplete = (input) => {
@@ -244,6 +341,7 @@
                         </div>
                         <label>Card name</label>
                         <input type="text" class="tree-node-card" />
+                        <div class="tree-node-card-status" aria-live="polite"></div>
                         <label>Parent node</label>
                         <select class="tree-node-parent"></select>
                         <label>Position</label>
@@ -260,7 +358,11 @@
                         updateParentOptions(tree);
                     });
                     cardInput.addEventListener("input", function() {
+                        clearCardStatus(cardInput);
                         updateParentOptions(tree);
+                    });
+                    cardInput.addEventListener("blur", function() {
+                        void validateCardInput(cardInput);
                     });
                     node.querySelector(".tree-builder-add-annotation").addEventListener("click", function() {
                         addAnnotation(node);
@@ -360,18 +462,29 @@
                     }
                 });
                 addTreeButton.addEventListener("click", addTree);
-                form.addEventListener("submit", function(event) {
+                let submitting = false;
+                form.addEventListener("submit", async function(event) {
+                    if (submitting) {
+                        return;
+                    }
                     if (!toggle.checked) {
                         payloadInput.value = "";
                         return;
                     }
+                    event.preventDefault();
                     const payloadResult = buildPayload();
                     if (payloadResult.error) {
-                        event.preventDefault();
                         alert(payloadResult.error);
                         return;
                     }
+                    const validation = await validateAllCardInputs();
+                    if (!validation.ok) {
+                        alert(`Some card names were not found: ${validation.names.join(", ")}.`);
+                        return;
+                    }
                     payloadInput.value = JSON.stringify(payloadResult.data);
+                    submitting = true;
+                    form.submit();
                 });
             }
 

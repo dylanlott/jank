@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {{template "shared_head"}}
+    <title>{{if .IsEdit}}/jank/ edit board{{else}}/jank/ new board{{end}}</title>
+    <style>
+        {{template "shared_styles"}}
+        .board-form {
+            display: grid;
+            gap: 12px;
+        }
+        .board-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .status-message {
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+            background: var(--color-surface-alt);
+        }
+        .status-message.error {
+            border-color: rgba(255, 123, 92, 0.5);
+            color: var(--color-danger);
+        }
+        .link-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(60, 245, 177, 0.35);
+            color: var(--color-text-strong);
+            font-family: "Space Mono", "JetBrains Mono", "Courier New", monospace;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .link-button:hover {
+            border-color: rgba(60, 245, 177, 0.6);
+            background: rgba(60, 245, 177, 0.08);
+        }
+    </style>
+</head>
+<body>
+    {{if .IsEdit}}
+        {{template "site_header" "/jank/ edit board"}}
+    {{else}}
+        {{template "site_header" "/jank/ new board"}}
+    {{end}}
+
+    {{template "klaxon_banner" .}}
+
+    <div class="container">
+        {{template "auth_bar" .}}
+        <h2>{{if .IsEdit}}Edit board{{else}}Create a board{{end}}</h2>
+        <p class="muted">Boards show up on the home page and organize threads.</p>
+
+        {{if .Error}}
+            <div class="status-message error">{{.Error}}</div>
+        {{end}}
+
+        <form class="board-form" method="POST" action="{{if .IsEdit}}/mod/boards/{{.Board.ID}}/edit{{else}}/mod/boards/new{{end}}">
+            <div>
+                <label for="name">Board name</label>
+                <input id="name" name="name" type="text" value="{{.Board.Name}}" placeholder="/commander/" required />
+                <p class="muted">Tip: wrap in slashes like /edh/ to match existing boards.</p>
+            </div>
+            <div>
+                <label for="description">Description</label>
+                <textarea id="description" name="description" rows="4" placeholder="What belongs here?">{{.Board.Description}}</textarea>
+            </div>
+            <div class="board-actions">
+                <button type="submit">{{if .IsEdit}}Save changes{{else}}Create board{{end}}</button>
+                <a class="link-button" href="/mod/boards">Back to boards</a>
+            </div>
+        </form>
+
+        {{template "footer_home" .}}
+    </div>
+</body>
+</html>
