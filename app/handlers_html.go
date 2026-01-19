@@ -889,6 +889,94 @@ func serveProfile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func serveUserTrees(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")
+		return
+	}
+	if !requireAuth(w, r) {
+		return
+	}
+	username, _ := getAuthenticatedUsername(r)
+	trees, err := getCardTreesByCreator(db, username)
+	if err != nil {
+		log.Errorf("Failed to load card trees: %v", err)
+		renderErrorPage(w, r, http.StatusInternalServerError, "Card Trees Unavailable", "We couldn't load your card trees.", "/profile")
+		return
+	}
+	summaries := make([]*CardTreeSummary, 0, len(trees))
+	for _, tree := range trees {
+		label, url := treeSourceInfo(tree)
+		summaries = append(summaries, &CardTreeSummary{
+			Tree:        tree,
+			SourceLabel: label,
+			SourceURL:   url,
+		})
+	}
+
+	authData := getAuthViewData(r)
+	data := UserTreesViewData{
+		AuthViewData: authData,
+		Trees:        summaries,
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "card_trees.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func serveCardTreeView(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		renderErrorPage(w, r, http.StatusMethodNotAllowed, "Not Allowed", "That action isn't supported here.", "/")
+		return
+	}
+	vars := mux.Vars(r)
+	treeID, err := strconv.Atoi(vars["treeID"])
+	if err != nil {
+		renderErrorPage(w, r, http.StatusBadRequest, "Invalid Tree", "That tree ID is not valid.", "/")
+		return
+	}
+	tree, err := getCardTreeByID(db, treeID)
+	if err != nil {
+		log.Errorf("Tree not found: %v", err)
+		renderErrorPage(w, r, http.StatusNotFound, "Tree Not Found", "We couldn't find that card tree.", "/")
+		return
+	}
+	label, url := treeSourceInfo(tree)
+
+	authData := getAuthViewData(r)
+	data := CardTreeViewData{
+		AuthViewData: authData,
+		Tree:         tree,
+		SourceLabel:  label,
+		SourceURL:    url,
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := templates.ExecuteTemplate(w, "card_tree.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func treeSourceInfo(tree *CardTree) (string, string) {
+	if tree == nil {
+		return "", ""
+	}
+	switch tree.ScopeType {
+	case "board":
+		return fmt.Sprintf("Board #%d", tree.ScopeID), fmt.Sprintf("/view/board/%d", tree.ScopeID)
+	case "thread":
+		return fmt.Sprintf("Thread #%d", tree.ScopeID), fmt.Sprintf("/view/thread/%d", tree.ScopeID)
+	case "post":
+		threadID, err := getPostThreadID(db, tree.ScopeID)
+		if err == nil {
+			return fmt.Sprintf("Post #%d in Thread #%d", tree.ScopeID, threadID), fmt.Sprintf("/view/thread/%d#post-%d", threadID, tree.ScopeID)
+		}
+		return fmt.Sprintf("Post #%d", tree.ScopeID), ""
+	default:
+		return fmt.Sprintf("%s #%d", tree.ScopeType, tree.ScopeID), ""
+	}
+}
+
 func serveUserLookup(w http.ResponseWriter, r *http.Request) {
 	authData := getAuthViewData(r)
 	if r.Method == http.MethodPost {

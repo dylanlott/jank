@@ -841,7 +841,7 @@
                     <a href="/mod/klaxon">Klaxon</a> ·
                 {{end}}
                 {{if .IsAuthenticated}}
-                    User: <a href="/profile">{{.Username}}</a> · <a href="/logout?next={{.CurrentPath | urlquery}}">Log out</a>
+                    <a href="/profile/trees">Card trees</a> · <a href="/logout?next={{.CurrentPath | urlquery}}">Log out</a> · <a href="/profile">[{{.Username}}]</a>
                 {{else}}
                     <a href="/login?next={{.CurrentPath | urlquery}}">Log in</a> ·
                     <a href="/signup?next={{.CurrentPath | urlquery}}">Sign up</a>

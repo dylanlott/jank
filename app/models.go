@@ -265,6 +265,27 @@ type KlaxonAdminViewData struct {
 	Success string
 }
 
+// CardTreeSummary is a card tree with source link metadata for listing views.
+type CardTreeSummary struct {
+	Tree        *CardTree
+	SourceLabel string
+	SourceURL   string
+}
+
+// UserTreesViewData holds data for the user's card trees page.
+type UserTreesViewData struct {
+	AuthViewData
+	Trees []*CardTreeSummary
+}
+
+// CardTreeViewData holds data for a single card tree page.
+type CardTreeViewData struct {
+	AuthViewData
+	Tree        *CardTree
+	SourceLabel string
+	SourceURL   string
+}
+
 // BoardAdminListViewData holds data for the board admin list page.
 type BoardAdminListViewData struct {
 	AuthViewData

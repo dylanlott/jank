@@ -1219,6 +1219,30 @@ func getCardTreesByScope(db *sql.DB, scopeType string, scopeID int, loadNodes bo
 	return trees, nil
 }
 
+func getCardTreesByCreator(db *sql.DB, username string) ([]*CardTree, error) {
+	rows, err := db.Query(`
+		SELECT id, scope_type, scope_id, title, description, created_by, created_at, updated_at, is_primary
+		FROM card_trees
+		WHERE created_by = $1
+		ORDER BY updated_at DESC`, username)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var trees []*CardTree
+	for rows.Next() {
+		var t CardTree
+		var description sql.NullString
+		if err := rows.Scan(&t.ID, &t.ScopeType, &t.ScopeID, &t.Title, &description, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt, &t.IsPrimary); err != nil {
+			return nil, err
+		}
+		t.Description = description.String
+		trees = append(trees, &t)
+	}
+	return trees, nil
+}
+
 func getCardTreesByScopeIDs(db *sql.DB, scopeType string, scopeIDs []int, loadNodes bool) (map[int][]*CardTree, error) {
 	treesByScope := make(map[int][]*CardTree)
 	if len(scopeIDs) == 0 {

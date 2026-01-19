@@ -92,26 +92,6 @@
             font-size: 0.75em;
             letter-spacing: 0.02em;
         }
-        .format-filters {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin: 12px 0 18px;
-        }
-        .format-filter {
-            border: 1px solid var(--color-filter-border);
-            background: var(--color-filter-bg);
-            color: var(--color-filter-text);
-            border-radius: 999px;
-            padding: 4px 12px;
-            font-size: 0.85em;
-            cursor: pointer;
-        }
-        .format-filter.is-active {
-            background: var(--color-filter-active-bg);
-            border-color: var(--color-filter-active-border);
-            color: var(--color-filter-active-text);
-        }
         footer {
             margin-top: 40px;
         }
@@ -122,13 +102,6 @@
             }
             .thread-date {
                 margin-top: 5px;
-            }
-            .format-filters {
-                gap: 6px;
-            }
-            .format-filter {
-                flex: 1 1 auto;
-                text-align: center;
             }
         }
     </style>
@@ -150,13 +123,6 @@
         {{end}}
 
         <h2>Threads 🧵</h2>
-        <div class="format-filters" aria-label="Format filters">
-            <button class="format-filter" type="button" data-format="standard">Standard</button>
-            <button class="format-filter" type="button" data-format="modern">Modern</button>
-            <button class="format-filter" type="button" data-format="pioneer">Pioneer</button>
-            <button class="format-filter" type="button" data-format="edh">EDH</button>
-            <button class="format-filter" type="button" data-format="clear">Clear</button>
-        </div>
         {{if .Board.Threads}}
             <ul class="threads">
             {{range .Board.Threads}}
