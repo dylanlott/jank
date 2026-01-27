@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {{template "shared_head"}}
+    <title>/jank/ card tree</title>
+    <style>
+        {{template "shared_styles"}}
+        .container {
+            max-width: 900px;
+        }
+        .tree-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .tree-meta {
+            color: var(--color-text-muted);
+            font-size: 0.9em;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .tree-share {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .tree-share input {
+            width: min(380px, 100%);
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--color-border);
+            background: var(--color-input-bg);
+            color: var(--color-input-text);
+            font-size: 0.85em;
+        }
+        .card-trees {
+            margin: 20px 0 10px;
+        }
+        .card-tree {
+            border: 1px solid var(--color-border-soft);
+            border-radius: 6px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            background: var(--color-card-bg);
+        }
+        .card-tree-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+        .card-tree-title {
+            font-weight: 600;
+            color: var(--color-text-strong);
+        }
+        .card-tree-badge {
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            background: var(--color-accent-soft-bg);
+            color: var(--color-accent-soft-text);
+            border-radius: 10px;
+            padding: 2px 8px;
+        }
+        .card-tree-desc {
+            color: var(--color-text-muted);
+            margin-bottom: 8px;
+        }
+        .card-tree-nodes {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        .card-tree-node {
+            position: relative;
+            margin-bottom: 10px;
+            padding-left: calc(var(--tree-depth) * 18px + 24px);
+        }
+        .card-tree-node::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: calc(var(--tree-depth) * 18px);
+            background-image: repeating-linear-gradient(
+                to right,
+                transparent 0,
+                transparent 14px,
+                var(--color-tree-line) 14px,
+                var(--color-tree-line) 15px
+            );
+        }
+        .card-tree-connector {
+            position: absolute;
+            left: calc(var(--tree-depth) * 18px);
+            top: 12px;
+            width: 16px;
+            height: 12px;
+            pointer-events: none;
+        }
+        .card-tree-connector::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 5px;
+            width: 12px;
+            border-top: 2px solid var(--color-tree-line);
+        }
+        .card-tree-connector::after {
+            content: "";
+            position: absolute;
+            left: 10px;
+            top: 2px;
+            width: 0;
+            height: 0;
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+            border-left: 6px solid var(--color-tree-line);
+        }
+        .card-tree-card {
+            font-weight: 600;
+        }
+        .card-tree-annotations {
+            list-style-type: none;
+            padding-left: 0;
+            margin: 4px 0 0 0;
+        }
+        .card-tree-annotation {
+            color: var(--color-text);
+            font-size: 0.95em;
+            margin-top: 2px;
+        }
+        .card-tree-annotation-kind {
+            text-transform: uppercase;
+            font-size: 0.7em;
+            letter-spacing: 0.04em;
+            color: var(--color-text-muted);
+            margin-right: 6px;
+        }
+        .card-tree-annotation-label {
+            font-weight: 600;
+            margin-right: 6px;
+        }
+        .card-tree-annotation-tags {
+            color: var(--color-text-muted);
+            margin-right: 6px;
+        }
+        @media (max-width: 600px) {
+            .card-tree-node {
+                padding-left: calc(var(--tree-depth) * 14px + 22px);
+            }
+            .card-tree-node::before {
+                width: calc(var(--tree-depth) * 14px);
+            }
+            .card-tree-connector {
+                left: calc(var(--tree-depth) * 14px);
+            }
+        }
+    </style>
+</head>
+<body>
+    {{template "site_header" "/jank/ card tree"}}
+
+    {{template "klaxon_banner" .}}
+
+    <div class="container">
+        {{template "auth_bar" .}}
+
+        <div class="tree-header">
+            <div>
+                <h2>{{.Tree.Title}}</h2>
+                {{if .Tree.Description}}
+                    <div class="card-tree-desc">{{.Tree.Description}}</div>
+                {{end}}
+                <div class="tree-meta">
+                    <span>Tree #{{.Tree.ID}}</span>
+                    <span>Created by {{.Tree.CreatedBy}}</span>
+                    <span>Updated {{.Tree.UpdatedAt.Format "Jan 2, 2006 at 3:04pm"}}</span>
+                    {{if .SourceLabel}}
+                        <span>Source: {{if .SourceURL}}<a href="{{.SourceURL}}">{{.SourceLabel}}</a>{{else}}{{.SourceLabel}}{{end}}</span>
+                    {{end}}
+                </div>
+            </div>
+            <div class="tree-share">
+                <label class="muted" for="tree-share-link">Share link</label>
+                <input id="tree-share-link" type="text" readonly value="/view/tree/{{.Tree.ID}}" />
+            </div>
+        </div>
+
+        <div class="card-trees">
+            <div class="card-tree">
+                <div class="card-tree-header">
+                    <div class="card-tree-title">{{.Tree.Title}}</div>
+                    {{if .Tree.IsPrimary}}
+                        <span class="card-tree-badge">Primary</span>
+                    {{end}}
+                </div>
+                {{if .Tree.Description}}
+                    <div class="card-tree-desc">{{.Tree.Description}}</div>
+                {{end}}
+                {{if .Tree.Nodes}}
+                    <ul class="card-tree-nodes">
+                        {{range .Tree.Nodes}}
+                            <li class="card-tree-node" style="--tree-depth: {{.Depth}};">
+                                <span class="card-tree-connector" aria-hidden="true"></span>
+                                <div class="card-tree-card">[[ {{.CardName}} ]]</div>
+                                {{if .Annotations}}
+                                    <ul class="card-tree-annotations">
+                                        {{range .Annotations}}
+                                            <li class="card-tree-annotation">
+                                                <span class="card-tree-annotation-kind">{{.Kind}}</span>
+                                                {{if .Label}}
+                                                    <span class="card-tree-annotation-label">{{.Label}}</span>
+                                                {{end}}
+                                                {{if .Tags}}
+                                                    <span class="card-tree-annotation-tags">{{.Tags}}</span>
+                                                {{end}}
+                                                <span class="card-tree-annotation-body">{{.Body}}</span>
+                                            </li>
+                                        {{end}}
+                                    </ul>
+                                {{end}}
+                            </li>
+                        {{end}}
+                    </ul>
+                {{else}}
+                    <p class="muted">No nodes yet.</p>
+                {{end}}
+            </div>
+        </div>
+
+        {{if .IsAuthenticated}}
+            <p><a href="/profile/trees">Back to your trees</a></p>
+        {{else}}
+            {{template "footer_home" .}}
+        {{end}}
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const cardBlocks = document.querySelectorAll(".card-tree-card, .card-tree-desc");
+            const cardNamePattern = /\[\[([^\]]+)\]\]/g;
+
+            const createCardMarkup = (name) => {
+                const safeName = name.trim();
+                return `<span class="mtg-card" data-card-name="${safeName}">[[ ${safeName} ]]</span>`;
+            };
+
+            cardBlocks.forEach(block => {
+                block.innerHTML = block.innerHTML.replace(cardNamePattern, (_, name) => createCardMarkup(name));
+            });
+
+            const cardInfoCache = new Map();
+
+            function initCardTooltips() {
+                const cards = document.querySelectorAll(".mtg-card");
+                cards.forEach(card => {
+                    if (card.querySelector(".mtg-card-tooltip")) {
+                        return;
+                    }
+                    const name = card.dataset.cardName || card.textContent.replace(/\[\[|\]\]/g, "").trim();
+                    const tooltip = document.createElement("span");
+                    tooltip.className = "mtg-card-tooltip";
+                    tooltip.innerHTML = `
+                        <span class="mtg-card-tooltip-title">${name}</span>
+                        <span class="mtg-card-tooltip-meta">Set: loading...</span>
+                        <span class="mtg-card-tooltip-price">Price: loading...</span>
+                        <span class="mtg-card-tooltip-loading">Loading art...</span>
+                        <img class="mtg-card-tooltip-image is-loading" alt="Card art for ${name}" loading="lazy" />
+                    `;
+                    card.appendChild(tooltip);
+
+                    const loadArt = async () => {
+                        if (tooltip.dataset.loaded === "true") {
+                            return;
+                        }
+                        tooltip.dataset.loaded = "true";
+                        const img = tooltip.querySelector(".mtg-card-tooltip-image");
+                        const loading = tooltip.querySelector(".mtg-card-tooltip-loading");
+                        const meta = tooltip.querySelector(".mtg-card-tooltip-meta");
+                        const price = tooltip.querySelector(".mtg-card-tooltip-price");
+                        if (!img || !loading || !meta || !price) {
+                            return;
+                        }
+                        const finalizeLoaded = () => {
+                            img.classList.remove("is-loading");
+                            loading.remove();
+                        };
+                        if (cardInfoCache.has(name)) {
+                            const info = cardInfoCache.get(name);
+                            meta.textContent = info.setLabel;
+                            price.textContent = info.priceLabel;
+                            img.src = info.imageUrl;
+                            img.addEventListener("load", finalizeLoaded, { once: true });
+                            img.addEventListener("error", () => {
+                                img.classList.remove("is-loading");
+                                loading.textContent = "Art unavailable.";
+                            }, { once: true });
+                            return;
+                        }
+                        try {
+                            const fetchCard = async (url) => {
+                                const response = await fetch(url);
+                                if (!response.ok) {
+                                    return null;
+                                }
+                                return response.json();
+                            };
+                            const exactUrl = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}`;
+                            const fuzzyUrl = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(name)}`;
+                            let data = await fetchCard(exactUrl);
+                            if (!data) {
+                                data = await fetchCard(fuzzyUrl);
+                            }
+                            if (!data) {
+                                throw new Error("Scryfall lookup failed");
+                            }
+                            const setName = data.set_name || "Unknown set";
+                            const prices = data.prices || {};
+                            let priceLabel = "Price: unavailable";
+                            if (prices.usd) {
+                                priceLabel = `Price: $${prices.usd}`;
+                            } else if (prices.usd_foil) {
+                                priceLabel = `Price (foil): $${prices.usd_foil}`;
+                            } else if (prices.eur) {
+                                priceLabel = `Price: EUR ${prices.eur}`;
+                            } else if (prices.eur_foil) {
+                                priceLabel = `Price (foil): EUR ${prices.eur_foil}`;
+                            }
+                            const imageUrl =
+                                data.image_uris?.normal ||
+                                data.image_uris?.small ||
+                                data.card_faces?.[0]?.image_uris?.normal ||
+                                data.card_faces?.[0]?.image_uris?.small;
+                            if (!imageUrl) {
+                                throw new Error("Missing card art");
+                            }
+                            const info = {
+                                imageUrl,
+                                setLabel: `Set: ${setName}`,
+                                priceLabel,
+                            };
+                            cardInfoCache.set(name, info);
+                            meta.textContent = info.setLabel;
+                            price.textContent = info.priceLabel;
+                            img.src = imageUrl;
+                            img.addEventListener("load", finalizeLoaded, { once: true });
+                            img.addEventListener("error", () => {
+                                img.classList.remove("is-loading");
+                                loading.textContent = "Art unavailable.";
+                            }, { once: true });
+                        } catch (error) {
+                            img.classList.remove("is-loading");
+                            loading.textContent = "Art unavailable.";
+                            meta.textContent = "Set: unknown";
+                            price.textContent = "Price: unavailable";
+                        }
+                    };
+
+                    card.addEventListener("mouseenter", loadArt, { once: true });
+                    let pressTimer = null;
+                    const clearPressTimer = () => {
+                        if (pressTimer) {
+                            clearTimeout(pressTimer);
+                            pressTimer = null;
+                        }
+                    };
+                    const deactivateOthers = () => {
+                        cards.forEach(other => {
+                            if (other !== card) {
+                                other.classList.remove("is-active");
+                            }
+                        });
+                    };
+                    card.addEventListener("touchstart", (event) => {
+                        clearPressTimer();
+                        pressTimer = window.setTimeout(() => {
+                            deactivateOthers();
+                            card.classList.add("is-active");
+                            loadArt();
+                        }, 300);
+                        event.stopPropagation();
+                    });
+                    card.addEventListener("touchend", clearPressTimer);
+                    card.addEventListener("mouseleave", clearPressTimer);
+                    document.addEventListener("touchstart", () => {
+                        card.classList.remove("is-active");
+                    });
+                });
+            }
+
+            initCardTooltips();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {{template "shared_head"}}
+    <title>/jank/ - card trees</title>
+    <style>
+        {{template "shared_styles"}}
+        .container {
+            max-width: 900px;
+        }
+        .trees-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .tree-list {
+            list-style: none;
+            padding: 0;
+            margin: 18px 0 0;
+            display: grid;
+            gap: 14px;
+        }
+        .tree-item {
+            border: 1px solid var(--color-border-strong);
+            border-radius: 10px;
+            padding: 14px 16px;
+            background: var(--color-surface-alt);
+            display: grid;
+            gap: 10px;
+        }
+        .tree-title {
+            font-weight: 700;
+            color: var(--color-text-strong);
+            font-size: 1.05em;
+        }
+        .tree-meta {
+            color: var(--color-text-muted);
+            font-size: 0.9em;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .tree-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .tree-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(60, 245, 177, 0.35);
+            color: var(--color-text-strong);
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .tree-action:hover {
+            border-color: rgba(60, 245, 177, 0.6);
+            background: rgba(60, 245, 177, 0.08);
+        }
+        .tree-share {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .tree-share input {
+            width: min(380px, 100%);
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--color-border);
+            background: var(--color-input-bg);
+            color: var(--color-input-text);
+            font-size: 0.85em;
+        }
+        .tree-empty {
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px dashed var(--color-border);
+            color: var(--color-text-muted);
+            text-align: center;
+        }
+        @media (max-width: 600px) {
+            .tree-share {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .tree-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    {{template "site_header" "/jank/ card trees"}}
+
+    {{template "klaxon_banner" .}}
+
+    <div class="container">
+        {{template "auth_bar" .}}
+        <div class="trees-header">
+            <div>
+                <h2>Your card trees</h2>
+                <p class="muted">These trees can be shared in posts with the link below.</p>
+            </div>
+        </div>
+
+        {{if .Trees}}
+            <ul class="tree-list">
+                {{range .Trees}}
+                    <li class="tree-item">
+                        <div class="tree-title"><a href="/view/tree/{{.Tree.ID}}">{{.Tree.Title}}</a></div>
+                        {{if .Tree.Description}}
+                            <div class="muted">{{.Tree.Description}}</div>
+                        {{end}}
+                        <div class="tree-meta">
+                            <span>Tree #{{.Tree.ID}}</span>
+                            <span>Created {{.Tree.CreatedAt.Format "Jan 2, 2006"}}</span>
+                            {{if .SourceLabel}}
+                                <span>Source: {{if .SourceURL}}<a href="{{.SourceURL}}">{{.SourceLabel}}</a>{{else}}{{.SourceLabel}}{{end}}</span>
+                            {{end}}
+                        </div>
+                        <div class="tree-actions">
+                            <a class="tree-action" href="/view/tree/{{.Tree.ID}}">View tree</a>
+                        </div>
+                        <div class="tree-share">
+                            <label class="muted" for="tree-link-{{.Tree.ID}}">Share link</label>
+                            <input id="tree-link-{{.Tree.ID}}" type="text" readonly value="/view/tree/{{.Tree.ID}}" />
+                        </div>
+                    </li>
+                {{end}}
+            </ul>
+        {{else}}
+            <div class="tree-empty">No card trees yet. Add one when you create a thread or reply.</div>
+        {{end}}
+
+        {{template "footer_home" .}}
+    </div>
+</body>
+</html>

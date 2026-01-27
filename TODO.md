@@ -10,14 +10,13 @@
 - [x] Post tools: inline quote/anchor linking with >>123 and backlink map.
 - [x] Flair auto-rarity: use post ID suffix to emit rare foil glows, give OP a gold ring.
 - [x] Add hot-reload capability to the application.
-- [ ] Archive mode: lock old threads but keep searchable via tags.
+- [ ] Archive mode: lock old threads but keep searchable via tags, thread, and reply content.
 - [x] Minimal mod tools: soft-delete with reason, report queue with categories.
 - [x] Add a thread and board search functionality with sqlite3 fuzzy search.
-- [ ] Add a simple vote mechanism for threads and replies.
 - [x] Add a board list, edit, and create page
 - [ ] Card tree builder UX improvements
   - [x] Validate card names against Scryfall before submit
-  - [ ] Add inline typeahead + quick add row per depth
+  - [x] Add inline typeahead + quick add row per depth
   - [ ] Drag/drop reordering with keyboard controls
   - [ ] Collapse/expand branches with batch controls
   - [ ] Bulk paste decklist to auto-create nodes
@@ -31,5 +30,6 @@
 - [x] Handle JSON encoding errors in `respondJSON`.
 - [ ] Add support for viewing gameplay summaries and stats from vedh games.
   - [ ] Timeline views of gamelog events
-- [ ] First-class support for TCG Player, EDHRec, Commander Spellbook, etc...
+  - [ ] Resource graphs of gamelog events
+- [ ] First-class support for links to TCG Player, EDHRec, Commander Spellbook, etc... resources
 - [x] Add a site-wide klaxon banner system for announcements.
