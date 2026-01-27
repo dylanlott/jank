@@ -28,13 +28,13 @@ func serverAddr() (string, string) {
 
 	if port := firstEnv("JANK_PORT", "PORT"); port != "" {
 		if !validPort(port) {
-			log.Warnf("Invalid port %q; falling back to :8080", port)
-			return normalizeAddr(":8080")
+			log.Warnf("Invalid port %q; falling back to :9090", port)
+			return normalizeAddr(":9090")
 		}
 		return normalizeAddr(":" + port)
 	}
 
-	return normalizeAddr(":8080")
+	return normalizeAddr(":9090")
 }
 
 func validPort(port string) bool {
@@ -48,7 +48,7 @@ func validPort(port string) bool {
 func normalizeAddr(addr string) (string, string) {
 	normalized := strings.TrimSpace(addr)
 	if normalized == "" {
-		normalized = ":8080"
+		normalized = ":9090"
 	}
 
 	if _, err := strconv.Atoi(normalized); err == nil {
@@ -59,13 +59,13 @@ func normalizeAddr(addr string) (string, string) {
 	if err != nil {
 		if !strings.Contains(normalized, ":") {
 			host = normalized
-			port = "8080"
+			port = "9090"
 			normalized = net.JoinHostPort(host, port)
 		} else {
-			log.Warnf("Invalid JANK_ADDR %q; falling back to :8080", addr)
+			log.Warnf("Invalid JANK_ADDR %q; falling back to :9090", addr)
 			host = ""
-			port = "8080"
-			normalized = ":8080"
+			port = "9090"
+			normalized = ":9090"
 		}
 	}
 

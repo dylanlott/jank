@@ -11,7 +11,7 @@
 
 > a tcg-focused forum
 
-`jank` uses Go with PostgreSQL by default (SQLite is optional) to store data. It is intentionally simple with all front-end assets statically embedded in the Go binary at build time. The server listens on `http://localhost:8080`.
+`jank` uses Go with PostgreSQL by default (SQLite is optional) to store data. It is intentionally simple with all front-end assets statically embedded in the Go binary at build time. The server listens on `http://localhost:9090`.
 
 ## Development
 
@@ -94,7 +94,7 @@ Issue a token:
 ```sh
 curl -X POST -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin"}' \
-  http://localhost:8080/auth/token
+  http://localhost:9090/auth/token
 ```
 
 Create a user and receive a token:
@@ -102,7 +102,7 @@ Create a user and receive a token:
 ```sh
 curl -X POST -H "Content-Type: application/json" \
   -d '{"username":"newuser","password":"changeme"}' \
-  http://localhost:8080/auth/signup
+  http://localhost:9090/auth/signup
 ```
 
 Use the token:
@@ -111,7 +111,7 @@ Use the token:
 curl -X POST -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{"title":"Dimir control is OP"}' \
-  http://localhost:8080/threads/2
+  http://localhost:9090/threads/2
 ```
 
 ## Moderation
@@ -137,12 +137,12 @@ Example: create and resolve a report
 curl -X POST -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{"post_id":1,"category":"spam","reason":"off-topic"}' \
-  http://localhost:8080/reports
+  http://localhost:9090/reports
 
 curl -X POST -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{"note":"removed"}' \
-  http://localhost:8080/reports/1/resolve
+  http://localhost:9090/reports/1/resolve
 ```
 
 ## API smoke tests
@@ -152,31 +152,31 @@ Most write endpoints require a JWT; see "JSON API authentication" above.
 ### Create a board
 
 ```sh
-curl -X POST -H "Content-Type: application/json" -d '{"name":"/salt/", "description":"let the hate flow"}' http://localhost:8080/boards
+curl -X POST -H "Content-Type: application/json" -d '{"name":"/salt/", "description":"let the hate flow"}' http://localhost:9090/boards
 ```
 
 ### List boards
 
 ```sh
-curl http://localhost:8080/boards
+curl http://localhost:9090/boards
 ```
 
 ### List threads for a given board
 
 ```sh
-curl http://localhost:8080/threads/1
+curl http://localhost:9090/threads/1
 ```
 
 ### Create a post in a thread
 
 ```sh
-curl -X POST -H "Content-Type: application/json" -d '{"title":"Dimir control is OP"}' http://localhost:8080/threads/2
+curl -X POST -H "Content-Type: application/json" -d '{"title":"Dimir control is OP"}' http://localhost:9090/threads/2
 ```
 
 ### Create post in a thread
 
 ```sh
-curl -X POST -H "Content-Type: application/json" -d '{"author":"anonymous", "content":"bofades nutz"}' http://localhost:8080/posts/1/1
+curl -X POST -H "Content-Type: application/json" -d '{"author":"anonymous", "content":"bofades nutz"}' http://localhost:9090/posts/1/1
 ```
 
 ### Create a card tree for a board
@@ -185,13 +185,13 @@ curl -X POST -H "Content-Type: application/json" -d '{"author":"anonymous", "con
 curl -X POST -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{"title":"Azorius Control Core","description":"Primary shells","is_primary":true}' \
-  http://localhost:8080/boards/1/trees
+  http://localhost:9090/boards/1/trees
 ```
 
 ### List card trees for a board
 
 ```sh
-curl http://localhost:8080/boards/1/trees
+curl http://localhost:9090/boards/1/trees
 ```
 
 ### Create a card tree for a thread
@@ -200,13 +200,13 @@ curl http://localhost:8080/boards/1/trees
 curl -X POST -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{"title":"Mirror Sideboard Map","description":"Matchup plan","is_primary":false}' \
-  http://localhost:8080/threads/2/trees
+  http://localhost:9090/threads/2/trees
 ```
 
 ### Fetch a tree with nodes and annotations
 
 ```sh
-curl http://localhost:8080/trees/1
+curl http://localhost:9090/trees/1
 ```
 
 ### Add a node to a tree
@@ -215,7 +215,7 @@ curl http://localhost:8080/trees/1
 curl -X POST -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{"card_name":"Teferi, Hero of Dominaria","parent_id":null,"position":0}' \
-  http://localhost:8080/trees/1/nodes
+  http://localhost:9090/trees/1/nodes
 ```
 
 ### Update a node in a tree
@@ -224,13 +224,13 @@ curl -X POST -H "Content-Type: application/json" \
 curl -X PATCH -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{"card_name":"Teferi, Time Raveler","parent_id":null,"position":1}' \
-  http://localhost:8080/trees/1/nodes/1
+  http://localhost:9090/trees/1/nodes/1
 ```
 
 ### Delete a node in a tree
 
 ```sh
-curl -X DELETE -H "Authorization: Bearer <token>" http://localhost:8080/trees/1/nodes/1
+curl -X DELETE -H "Authorization: Bearer <token>" http://localhost:9090/trees/1/nodes/1
 ```
 
 ### Add an annotation to a node
@@ -239,13 +239,13 @@ curl -X DELETE -H "Authorization: Bearer <token>" http://localhost:8080/trees/1/
 curl -X POST -H "Content-Type: application/json" \
   -H "Authorization: Bearer <token>" \
   -d '{"kind":"note","body":"Pairs with [[Narset, Parter of Veils]]","source_post_id":null}' \
-  http://localhost:8080/trees/1/nodes/1/annotations
+  http://localhost:9090/trees/1/nodes/1/annotations
 ```
 
 ### Delete an annotation
 
 ```sh
-curl -X DELETE -H "Authorization: Bearer <token>" http://localhost:8080/trees/1/nodes/1/annotations/1
+curl -X DELETE -H "Authorization: Bearer <token>" http://localhost:9090/trees/1/nodes/1/annotations/1
 ```
 
 ## Tooling

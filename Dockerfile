@@ -39,8 +39,8 @@ COPY --from=build /app/server /app/
 # Copy templates folder (embedded resources may still require the folder structure)
 COPY --from=build /app/templates ./templates
 
-# Expose port 8080 for the application
-EXPOSE 8080
+# Expose port 9090 for the application
+EXPOSE 9090
 
 # Run the server binary
 ENTRYPOINT ["/app/server"]

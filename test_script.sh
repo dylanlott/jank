@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Base URL
-BASE_URL="http://localhost:8080"
+BASE_URL="http://localhost:9090"
 AUTH_USER="${AUTH_USER:-admin}"
 AUTH_PASS="${AUTH_PASS:-admin}"
 
