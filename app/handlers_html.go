@@ -1077,6 +1077,18 @@ func serveSignup(w http.ResponseWriter, r *http.Request) {
 			renderSignupError(w, r, next, "Username and password are required.")
 			return
 		}
+		if len(username) > 32 {
+			renderSignupError(w, r, next, "Username must be 32 characters or fewer.")
+			return
+		}
+		if len(password) < 8 {
+			renderSignupError(w, r, next, "Password must be at least 8 characters.")
+			return
+		}
+		if len(password) > 1024 {
+			renderSignupError(w, r, next, "Password too long.")
+			return
+		}
 		if _, err := createUser(db, username, password); err != nil {
 			log.Errorf("Failed to create user: %v", err)
 			renderSignupError(w, r, next, signupErrorMessage(err))

@@ -1,6 +1,10 @@
 package app
 
-import "github.com/gorilla/mux"
+import (
+	"time"
+
+	"github.com/gorilla/mux"
+)
 
 func buildRouter() *mux.Router {
 	r := mux.NewRouter()
@@ -20,8 +24,6 @@ func buildRouter() *mux.Router {
 	r.HandleFunc("/mod/klaxon", serveKlaxonAdmin).Methods("GET", "POST")
 	r.HandleFunc("/mod/reports/{reportID:[0-9]+}/resolve", resolveReportHandler).Methods("POST")
 	r.HandleFunc("/mod/posts/{postID:[0-9]+}/delete", deletePostHandler).Methods("POST")
-	r.HandleFunc("/login", serveLogin).Methods("GET", "POST")
-	r.HandleFunc("/signup", serveSignup).Methods("GET", "POST")
 	r.HandleFunc("/logout", serveLogout).Methods("POST", "GET")
 	r.HandleFunc("/profile", serveProfile).Methods("GET")
 	r.HandleFunc("/profile/trees", serveUserTrees).Methods("GET")
@@ -31,8 +33,13 @@ func buildRouter() *mux.Router {
 	r.HandleFunc("/view/tree/{treeID:[0-9]+}", serveCardTreeView).Methods("GET")
 	r.HandleFunc("/favicon.ico", serveFaviconRedirect).Methods("GET")
 	r.HandleFunc("/favicon.svg", serveFavicon).Methods("GET")
-	r.HandleFunc("/auth/token", authTokenHandler).Methods("POST")
-	r.HandleFunc("/auth/signup", authSignupHandler).Methods("POST")
+
+	authRoutes := r.PathPrefix("").Subrouter()
+	authRoutes.Use(authRateLimitMiddleware(10, 15*time.Minute))
+	authRoutes.HandleFunc("/login", serveLogin).Methods("GET", "POST")
+	authRoutes.HandleFunc("/signup", serveSignup).Methods("GET", "POST")
+	authRoutes.HandleFunc("/auth/token", authTokenHandler).Methods("POST")
+	authRoutes.HandleFunc("/auth/signup", authSignupHandler).Methods("POST")
 
 	// REST API endpoints
 	r.HandleFunc("/boards", boardsHandler).Methods("GET", "POST")

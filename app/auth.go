@@ -79,7 +79,7 @@ func setAuthCookie(w http.ResponseWriter, r *http.Request, username string) {
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   r.TLS != nil,
+		Secure:   getenvTrim("JANK_SECURE_COOKIES") != "false",
 		MaxAge:   60 * 60 * 24 * 7,
 	})
 }

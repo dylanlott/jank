@@ -2,7 +2,6 @@ package app
 
 import (
 	"crypto/hmac"
-	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
@@ -12,6 +11,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // ------------------- Database & Utility -------------------
@@ -1726,15 +1727,19 @@ func deleteBoardByID(db *sql.DB, boardID int) error {
 }
 
 func hashPassword(password string) (string, error) {
-	salt := make([]byte, 16)
-	if _, err := rand.Read(salt); err != nil {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
 		return "", err
 	}
-	sum := sha256.Sum256(append(salt, []byte(password)...))
-	return base64.RawURLEncoding.EncodeToString(salt) + ":" + base64.RawURLEncoding.EncodeToString(sum[:]), nil
+	return string(hash), nil
 }
 
 func verifyPassword(password, stored string) bool {
+	// Support old sha256:salt:hash format during migration
+	if strings.HasPrefix(stored, "$2") {
+		return bcrypt.CompareHashAndPassword([]byte(stored), []byte(password)) == nil
+	}
+	// Legacy SHA-256 path — detect by presence of ":" separator
 	parts := strings.SplitN(stored, ":", 2)
 	if len(parts) != 2 {
 		return false

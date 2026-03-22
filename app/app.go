@@ -31,6 +31,23 @@ func init() {
 	log.SetLevel(logrus.InfoLevel)
 }
 
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'")
+		next.ServeHTTP(w, r)
+	})
+}
+
+func limitBodySize(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB
+		next.ServeHTTP(w, r)
+	})
+}
+
 func Run(templatesFS embed.FS) error {
 	var err error
 
@@ -61,12 +78,17 @@ func Run(templatesFS embed.FS) error {
 	}
 
 	r := buildRouter()
+	handler := securityHeaders(limitBodySize(r))
 	addr, logURL := serverAddr()
 	log.Infof("Server listening on %s", logURL)
 
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: r,
+		Addr:              addr,
+		Handler:           handler,
+		ReadTimeout:       10 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	shutdownCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

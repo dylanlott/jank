@@ -47,6 +47,10 @@ func authSignupHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Username and password required", http.StatusBadRequest)
 		return
 	}
+	if len(credentials.Username) > 32 || len(credentials.Password) < 8 || len(credentials.Password) > 1024 {
+		http.Error(w, "Invalid username or password length", http.StatusBadRequest)
+		return
+	}
 	if _, err := createUser(db, credentials.Username, credentials.Password); err != nil {
 		log.Errorf("Failed to create user: %v", err)
 		http.Error(w, signupErrorMessage(err), http.StatusBadRequest)

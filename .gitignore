@@ -1,3 +1,5 @@
 sqlite.db
 deploy.sh
 bin/*
+
+backups/*.db

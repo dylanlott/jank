@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"strings"
 
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/renderer/html"
@@ -19,14 +20,16 @@ var markdownRenderer = goldmark.New(
 	),
 )
 
+var mdPolicy = bluemonday.UGCPolicy()
+
 func renderMarkdown(input string) template.HTML {
 	if strings.TrimSpace(input) == "" {
 		return template.HTML("")
 	}
 	var buf bytes.Buffer
 	if err := markdownRenderer.Convert([]byte(input), &buf); err != nil {
-		log.Warnf("Failed to render markdown: %v", err)
 		return template.HTML(template.HTMLEscapeString(input))
 	}
-	return template.HTML(buf.String())
+	safe := mdPolicy.SanitizeBytes(buf.Bytes())
+	return template.HTML(safe)
 }
